@@ -57,8 +57,36 @@ int ropen(const char *path, int flags) {
 
 //create file or directory ,choose type FILE or DIRECTORY
 File *create_file(char *pathname, int type) {
-    //TODO
-    return NULL;
+    //find parent directory
+    char *parent_path = (char *) malloc(strlen(pathname) + 1);
+    strcpy(parent_path, pathname);
+    char *name = strrchr(parent_path, '/');
+    *name = '\0';
+    name++;
+    File *parent = find_file(parent_path);
+    if (parent == NULL) {
+        //parent directory not found
+        return NULL;
+    }
+    //create file or directory
+    File *file = (File *) malloc(sizeof(File));
+    file->type = type;
+    file->size = 0;
+    file->parent = parent;
+    file->child = NULL;
+    file->sibling = NULL;
+    strcpy(file->name, name);
+    //add file or directory to parent directory
+    if (parent->child == NULL) {
+        parent->child = file;
+    } else {
+        File *child = parent->child;
+        while (child->sibling != NULL) {
+            child = child->sibling;
+        }
+        child->sibling = file;
+    }
+    return file;
 }
 
 //find file
