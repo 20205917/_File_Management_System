@@ -72,11 +72,11 @@ void init_ramfs();
 
 
 //util function
-File *find_file(const char *pathname);
+File *find_file( char *pathname);
 
-File *create_file(const char *pathname, int type);
+File *create_file( char *pathname, int type);
 
 //clear file path
-char *clean_path(const char *pathname);
+char *clean_path( char *pathname);
 
 #endif //_FILE_MANAGEMENT_SYSTEM_RAMFS_H

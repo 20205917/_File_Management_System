@@ -7,6 +7,7 @@
 
 //file system
 FdTable fd_table;
+File *root;
 
 //init file system
 void init_ramfs() {
@@ -16,7 +17,7 @@ void init_ramfs() {
         fd_table.fds[i] = NULL;
     }
     //create root directory
-    File *root = (File *) malloc(sizeof(File));
+    root = (File *) malloc(sizeof(File));
     root->type = 1;
     root->size = 0;
     root->parent = NULL;
@@ -28,10 +29,9 @@ void init_ramfs() {
 
 //open file or directory
 int ropen(const char *path, int flags) {
-
     //invalid path
-    char* pathname=clean_path(path);
-    if(pathname==NULL){
+    char *pathname = clean_path(path);
+    if (pathname == NULL) {
         return -1;
     }
     //find file or directory
@@ -56,26 +56,41 @@ int ropen(const char *path, int flags) {
 }
 
 //create file or directory ,choose type FILE or DIRECTORY
-File *create_file(const char *pathname, int type) {
-    char *path = clean_path(pathname);
-    if (path == NULL) {
-        //invalid path
-        return NULL;
-    }
+File *create_file(char *pathname, int type) {
     //TODO
     return NULL;
 }
 
 //find file
-File *find_file(const char *pathname) {
-    //TODO
-    return NULL;
+File *find_file(char *pathname) {
+    File *cur = root;//current file
+    char *path = strtok(pathname, "/");
+    while (path != NULL) {
+        if (cur->child == NULL) {
+            //child not found
+            return NULL;
+        }
+        cur = cur->child;
+        while (cur != NULL) {
+            if (strcmp(cur->name, path) == 0) {
+                //child found
+                break;
+            }
+            cur = cur->sibling;
+        }
+        if (cur == NULL) {
+            //child not found
+            return NULL;
+        }
+        path = strtok(NULL, "/");
+    }
+    return cur;
 }
 
 //clear file path
-char *clean_path(const char *pathname) {
+char *clean_path(char *pathname) {
     //invalid path
-    if(pathname==NULL||strlen(pathname)==0||strlen(pathname)>MAX_FILE_NAME_LENGTH||pathname[0]!='/'){
+    if (pathname == NULL || strlen(pathname) == 0 || strlen(pathname) > MAX_FILE_NAME_LENGTH || pathname[0] != '/') {
         return NULL;
     }
     char *tmp = (char *) malloc(sizeof(char) * MAX_FILE_NAME_LENGTH);
