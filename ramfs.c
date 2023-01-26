@@ -27,7 +27,13 @@ void init_ramfs() {
 
 
 //open file or directory
-int ropen(const char *pathname, int flags) {
+int ropen(const char *path, int flags) {
+
+    //invalid path
+    char* pathname=clean_path(path);
+    if(pathname==NULL){
+        return -1;
+    }
     //find file or directory
     File *file = find_file(pathname);
     if (file == NULL) {
@@ -51,6 +57,11 @@ int ropen(const char *pathname, int flags) {
 
 //create file or directory ,choose type FILE or DIRECTORY
 File *create_file(const char *pathname, int type) {
+    char *path = clean_path(pathname);
+    if (path == NULL) {
+        //invalid path
+        return NULL;
+    }
     //TODO
     return NULL;
 }
