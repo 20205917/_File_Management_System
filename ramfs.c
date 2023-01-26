@@ -1,31 +1,117 @@
 //
 // Created by xgs on 23-1-26.
 //
+#include <malloc.h>
+#include <string.h>
 #include "ramfs.h"
-
-typedef struct file{
-    char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
-    int type; //type 0:file 1:directory
-    int size; //file size
-    struct file* parent; //parent directory
-    struct file* child; //child directory or file
-    struct file* sibling; //sibling directory or file
-    char* content; //file content
-} File;
-
-//file descriptor
-typedef struct fd{
-    int fd; //file descriptor
-    File* file; //file
-}Fd;
-
-//file descriptor table
-typedef struct fd_table{
-    Fd* fds[MAX_FD_COUNT]; //file descriptor table
-    int fd_count; //file descriptor count
-}FdTable;
 
 //file system
 FdTable fd_table;
+
+//init file system
+void init_ramfs() {
+    //init file descriptor table
+    fd_table.fd_count = 0;
+    for (int i = 0; i < MAX_FD_COUNT; i++) {
+        fd_table.fds[i] = NULL;
+    }
+    //create root directory
+    File *root = (File *) malloc(sizeof(File));
+    root->type = 1;
+    root->size = 0;
+    root->parent = NULL;
+    root->child = NULL;
+    root->sibling = NULL;
+    strcpy(root->name, "/");
+}
+
+
+//open file or directory
+int ropen(const char *pathname, int flags) {
+    //find file or directory
+    File *file = find_file(pathname);
+    if (file == NULL) {
+        //file or directory not found
+        if (flags & O_CREAT) {
+            //create file or directory
+            file = create_file(pathname, FILE);
+        } else {
+            //file or directory not found
+            return -1;
+        }
+    }
+    //create file descriptor
+    Fd *fd = (Fd *) malloc(sizeof(Fd));
+    fd->offset = 0;
+    fd->file = file;
+    //add file descriptor to file descriptor table
+    fd_table.fds[fd_table.fd_count] = fd;
+    return fd_table.fd_count++;
+}
+
+//create file or directory ,choose type FILE or DIRECTORY
+File *create_file(const char *pathname, int type) {
+    //TODO
+    return NULL;
+}
+
+//find file
+File *find_file(const char *pathname) {
+    //TODO
+    return NULL;
+}
+
+//clear file path
+char *clean_path(const char *pathname) {
+    //invalid path
+    if(pathname==NULL||strlen(pathname)==0||strlen(pathname)>MAX_FILE_NAME_LENGTH||pathname[0]!='/'){
+        return NULL;
+    }
+    char *tmp = (char *) malloc(sizeof(char) * MAX_FILE_NAME_LENGTH);
+    //we use two pointer to copy pathname to tmp
+    //we will jump all the '/' in pathname ,if we meet '.'
+    int p = 0;
+    int isFile = 0;
+    for (int i = 0; i < strlen(pathname); ++i) {
+        if (pathname[i] == '/') {
+            if (isFile) {
+                free(tmp);
+                return NULL;
+            }
+            continue;
+        } else {
+            tmp[p++] = '/';
+            for (int j = i; j < strlen(pathname); ++j) {
+                if (pathname[j] == '/') {
+                    if (isFile) {
+                        free(tmp);
+                        return NULL;
+                    }
+                    i = j;
+                    break;
+                } else {
+                    if (pathname[j] == '.') {
+                        isFile = 1;
+                    }
+                    tmp[p++] = pathname[j];
+                }
+            }
+        }
+    }
+    return tmp;
+}
+
+//create directory
+int rmkdir(const char *pathname) {
+    //find file first
+    File *file = find_file(pathname);
+    if (file != NULL) {
+        //file or directory already exists
+        return -1;
+    }
+    //create file or directory
+    create_file(pathname, DIRECTORY);
+    return 0;
+}
 
 

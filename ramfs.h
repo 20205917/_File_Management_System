@@ -21,11 +21,35 @@
 #define MAX_FILE_NAME_LENGTH 256
 #define MAX_FD_COUNT 65554
 
+#define FILE 0
+#define DIRECTORY 1
+
+typedef struct file {
+    char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
+    int type; //type 0:file 1:directory
+    int size; //file size
+    struct file *parent; //parent directory
+    struct file *child; //child directory or file
+    struct file *sibling; //sibling directory or file
+    char *content; //file content
+} File;
+
+//file descriptor
+typedef struct fd {
+    int offset; //file descriptor
+    File *file; //file
+} Fd;
+
+//file descriptor table
+typedef struct fd_table {
+    Fd *fds[MAX_FD_COUNT]; //file descriptor table
+    int fd_count; //file descriptor count
+} FdTable;
+
 
 
 typedef long off_t;
 typedef long int ssize_t;
-typedef int size_t;
 
 int ropen(const char *pathname, int flags);
 
@@ -44,5 +68,14 @@ int rrmdir(const char *pathname);
 int runlink(const char *pathname);
 
 void init_ramfs();
+
+
+//util function
+File *find_file(const char *pathname);
+
+File *create_file(const char *pathname, int type);
+
+//clear file path
+char *clean_path(const char *pathname);
 
 #endif //_FILE_MANAGEMENT_SYSTEM_RAMFS_H
