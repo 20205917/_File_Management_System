@@ -164,7 +164,11 @@ int rmkdir(const char *pathname) {
         return -1;
     }
     //create file or directory
-    create_file(pathname, DIRECTORY);
+    file=create_file(pathname, DIRECTORY);
+    if (file == NULL) {
+        //create file or directory failed
+        return -1;
+    }
     return 0;
 }
 
