@@ -21,7 +21,7 @@ int InsertHashMap(HashMap* hashMap, char* key, intptr_t value)
     // 创建一个node节点
     HashNode* node = (HashNode*)calloc(1, sizeof(HashNode));
     if (node == NULL) {
-        return 0;
+        return -1;// 内存分配失败，返回-1
     }
 
     // 复制键和值
@@ -45,7 +45,7 @@ int InsertHashMap(HashMap* hashMap, char* key, intptr_t value)
             if (strcmp(temp->key, node->key) == 0) {
                 // 复制新value
                 temp->value = value;
-                return 0;
+                return 1; // 返回1表示插入成功
             }
             prev = temp;
             temp = temp->next;
@@ -53,7 +53,7 @@ int InsertHashMap(HashMap* hashMap, char* key, intptr_t value)
         // 最后一个节点node_end的next指向新建的node
         prev->next = node;
     }
-    return 0;
+    return 1;
 }
 
 intptr_t GetHashMap(HashMap* hashMap,char* key)
@@ -102,7 +102,7 @@ int RemoveHashMap(HashMap* hashMap, char* key)
     // 用于遍历node的临时游标
     HashNode *temp = hashMap->hashArr[index];
     if (temp == NULL)
-        return 0;
+        return -1;
 
     // 如果第一个就匹配中
     if (strcmp(temp->key, key) == 0) {
@@ -116,7 +116,6 @@ int RemoveHashMap(HashMap* hashMap, char* key)
         temp = temp->next;
         // 循环遍历至最后一个节点node_end的next
         while (temp != NULL) {
-            // 如果两个key相同，则用新node的value覆盖旧的
             if (strcmp(temp->key, key) == 0) {
                 prev->next = temp->next;
                 free(temp->key);
@@ -127,10 +126,14 @@ int RemoveHashMap(HashMap* hashMap, char* key)
             temp = temp->next;
         }
     }
-    return 0;
+    return -1;
 }
-
+// Path: hashmap.h
 int myHash(char *x) {
-    return 0;
+    int hash = 0;
+    char *s;
+    for (s = x; *s; s++)
+        hash = hash * 31 + *s;
+    return hash;
 }
 

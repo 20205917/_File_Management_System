@@ -3,45 +3,41 @@
 //
 #ifndef _FILE_MANAGEMENT_SYSTEM_HASHMAP_H
 #define _FILE_MANAGEMENT_SYSTEM_HASHMAP_H
+
 #include <stdint.h>
 
-typedef struct HashNode
-{
-    char * key;
+typedef struct HashNode {
+    char *key;
 
     intptr_t value;
 
-    struct HashNode* next; // 当key相同时，指向集合中的下一个节点
+    struct HashNode *next; // 当key相同时，指向集合中的下一个节点
 
-}HashNode;
+} HashNode;
 
 
-typedef struct HashMap
-{
+typedef struct HashMap {
     int size; // hash map不重复node的数量
 
-    HashNode** hashArr; // 二维数组，存key值不重复的node，key重复的node链接在HashNode->next
+    HashNode **hashArr; // 存key值不重复的node，key重复的node链接在HashNode->next
 
-}HashMap;
+} HashMap;
 
-int myHash(char * x);
+int myHash(char *x);
 
-HashMap* CreateHashMap(int n);
+HashMap *CreateHashMap(int n);
 
-int InsertHashMap(HashMap* hashMap, char* key, intptr_t value);
+int InsertHashMap(HashMap *hashMap, char *key, intptr_t value);
 
-intptr_t GetHashMap(HashMap* hashMap, char* key);
+intptr_t GetHashMap(HashMap *hashMap, char *key);
 
-void DeleteHashMap(HashMap* hashMap);
+void DeleteHashMap(HashMap *hashMap);
 
-int RemoveHashMap(HashMap* hashMap, char* key);
+int RemoveHashMap(HashMap *hashMap, char *key);
 
-void PrintHashMap(HashMap* hashMap);
+void PrintHashMap(HashMap *hashMap);
 
 void hashMapTest(void);
-
-
-
 
 
 #endif //_FILE_MANAGEMENT_SYSTEM_HASHMAP_H
