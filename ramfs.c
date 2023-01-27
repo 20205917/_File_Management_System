@@ -232,3 +232,21 @@ int rclose(int fd){
     fd_table.fds[fd] = NULL;
     return 1;
 }
+
+//SEEK_SET 0 将文件描述符的偏移量设置到 offset 指向的位置
+//SEEK_CUR 1 将文件描述符的偏移量设置到 当前位置 + offset 字节的位置
+//SEEK_END 2 将文件描述符的偏移量设置到 文件末尾 + offset 字节的位置
+//rseek 允许将偏移量设置到文件末尾之后的位置，但是并不会改变文件的大小，直到它在这个位置写入
+//了数据。在 超过文件末尾的地方写入了数据后，原来的文件末尾到实际写入位置之间可能出现一个空
+//隙，我们规定应当以 "\0" 填充这段空间。
+off_t rseek(int fd, off_t offset, int whence){
+    //TODO
+}
+
+ssize_t rwrite(int fd, const void *buf, size_t count){
+    //TODO
+}
+
+ssize_t rread(int fd, void *buf, size_t count){
+    //TODO
+}
