@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include "hashmap.h"
+
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
@@ -21,21 +22,19 @@
 #define MAX_FILE_NAME_LENGTH 256
 #define MAX_FD_COUNT 65554
 
-
 #define DIRECTORY 1
 
 typedef struct Folder {
     char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
     int32_t size; //file size
-    struct Folder * parent;
-    HashMap * fileSet;
-    HashMap * folderSet;
-    char *content; //file content
+    struct Folder *parent;
+    HashMap *fileSet;
+    HashMap *folderSet;
 } Folder;
 
 typedef struct File {
     char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
-    struct Folder * parent;
+    struct Folder *parent;
     int32_t size; //file size
     char *content; //file content
 } File;
@@ -50,14 +49,12 @@ typedef struct fd {
 //file descriptor table
 typedef struct fd_table {
     Fd *fds[MAX_FD_COUNT]; //file descriptor table
-    int fd_count; //file descriptor count
 } FdTable;
 
 
 typedef intptr_t ssize_t;
 typedef uintptr_t size_t;
 typedef long off_t;
-
 
 
 int ropen(const char *pathname, int flags);
@@ -79,14 +76,19 @@ int runlink(const char *pathname);
 void init_ramfs();
 
 
-//util function
-File *find_file( char *pathname);
 
-File *create_file( char *pathname, int type);
 
-int8_t delete_file( char *pathname);
+//util functions
+File *find_file(char *pathname);
+File *create_file(char *pathname);
+int delete_file(char *pathname);
+
+Folder *find_folder(char *pathname);
+Folder *create_dir(char *pathname);
+int delete_dir(char *pathname);
 
 //clear file path
-char *clean_path( char *pathname);
+char *clean_path(char *pathname);
+
 
 #endif //_FILE_MANAGEMENT_SYSTEM_RAMFS_H

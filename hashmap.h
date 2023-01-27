@@ -6,6 +6,8 @@
 
 #include <stdint.h>
 
+#define DEFAULT_HASHMAP_SIZE 31
+
 typedef struct HashNode {
     char *key;
 
@@ -26,6 +28,8 @@ typedef struct HashMap {
 int myHash(char *x);
 
 HashMap *CreateHashMap(int n);
+
+HashMap *DefaultHashMap();
 
 int InsertHashMap(HashMap *hashMap, char *key, intptr_t value);
 

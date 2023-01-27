@@ -4,25 +4,24 @@
 #include <malloc.h>
 #include <string.h>
 #include "ramfs.h"
+
 #define FILE      0
 //file system
 FdTable fd_table;
-File *root;
+Folder *root;
 
 //init file system
 void init_ramfs() {
     //init file descriptor table
-    fd_table.fd_count = 0;
     for (int i = 0; i < MAX_FD_COUNT; i++) {
         fd_table.fds[i] = NULL;
     }
     //create root directory
-    root = (File *) malloc(sizeof(File));
-    root->type = 1;
-    root->size = 0;
+    root = (Folder *) malloc(sizeof(Folder));
     root->parent = NULL;
-    root->child = NULL;
-    root->sibling = NULL;
+    root->size = 0;
+    root->fileSet = DefaultHashMap();
+    root->folderSet = DefaultHashMap();
     strcpy(root->name, "/");
 }
 
@@ -40,7 +39,7 @@ int ropen(const char *path, int flags) {
         //file or directory not found
         if (flags & O_CREAT) {
             //create file or directory
-            file = create_file(pathname, FILE);
+            file = create_file(pathname);
         } else {
             //file or directory not found
             return -1;
@@ -50,64 +49,53 @@ int ropen(const char *path, int flags) {
     Fd *fd = (Fd *) malloc(sizeof(Fd));
     fd->offset = 0;
     fd->file = file;
-    //add file descriptor to file descriptor table
-    fd_table.fds[fd_table.fd_count] = fd;
-    return fd_table.fd_count++;
+    fd->flags = flags;
+
+    //find empty file descriptor
+    for (int i = 0; i < MAX_FD_COUNT; i++) {
+        if (fd_table.fds[i] == NULL) {
+            fd_table.fds[i] = fd;
+            return i;
+        }
+    }
+    return  -1;//no empty file descriptor
 }
 
 //create file or directory ,choose type FILE or DIRECTORY
-File *create_file(char *pathname, int type) {
+File *create_file(char *pathname) {
     //find parent directory
     char *parent_path = (char *) malloc(strlen(pathname) + 1);
     strcpy(parent_path, pathname);
     char *name = strrchr(parent_path, '/');
     *name = '\0';
     name++;
-    File *parent = find_file(parent_path);
+    Folder *parent = find_folder(parent_path);
     if (parent == NULL) {
         //parent directory not found
         return NULL;
     }
     //create file or directory
     File *file = (File *) malloc(sizeof(File));
-    file->type = type;
     file->size = 0;
     file->parent = parent;
-    file->child = NULL;
-    file->sibling = NULL;
     strcpy(file->name, name);
     //add file or directory to parent directory
-    if (parent->child == NULL) {
-        parent->child = file;
-    } else {
-        File *child = parent->child;
-        while (child->sibling != NULL) {
-            child = child->sibling;
-        }
-        child->sibling = file;
+    if (InsertHashMap(parent->fileSet, name, (intptr_t) file)) {
+        //add file or directory to parent directory failed
+        return file;
     }
-    return file;
+    return NULL;
 }
 
-//find file
-File *find_file(char *pathname) {
-    File *cur = root;//current file
+//find folder only
+Folder *find_folder(char *pathname) {
+    Folder *cur = root;//current file
     char *path = strtok(pathname, "/");
+    //get file name
     while (path != NULL) {
-        if (cur->child == NULL) {
-            //child not found
-            return NULL;
-        }
-        cur = cur->child;
-        while (cur != NULL) {
-            if (strcmp(cur->name, path) == 0) {
-                //child found
-                break;
-            }
-            cur = cur->sibling;
-        }
+        cur = (Folder *) GetHashMap(cur->folderSet, path);
         if (cur == NULL) {
-            //child not found
+            //path not found
             return NULL;
         }
         path = strtok(NULL, "/");
@@ -115,13 +103,58 @@ File *find_file(char *pathname) {
     return cur;
 }
 
+//find file only
+File *find_file(char *pathname) {
+    char *parent_path = (char *) malloc(strlen(pathname) + 1);
+    strcpy(parent_path, pathname);
+    char *name = strrchr(parent_path, '/');
+    *name = '\0';
+    name++;
+    Folder *parent = find_folder(parent_path);
+    if (parent == NULL) {
+        //parent directory not found
+        return NULL;
+    }
+    return (File *) GetHashMap(parent->fileSet, name);
+}
+
+int delete_file(char *pathname) {
+    char *parent_path = (char *) malloc(strlen(pathname) + 1);
+    strcpy(parent_path, pathname);
+    char *name = strrchr(parent_path, '/');
+    *name = '\0';
+    name++;
+
+    Folder *parent = find_folder(parent_path);
+    if (parent == NULL) {
+        //parent directory not found
+        return -1;
+    }
+    return RemoveHashMap(parent->fileSet, name);
+}
+
+
+int delete_dir(char *pathname) {
+    if (strcmp(pathname, "/") == 0) {
+        //can not delete root directory
+        return -1;
+    }
+    Folder *folder = find_folder(pathname);
+    if (folder == NULL) {
+        //parent directory not found
+        return -1;
+    }
+    return RemoveHashMap(folder->parent->folderSet, folder->name);
+}
+
+
 //clear file path
 char *clean_path(char *pathname) {
     //invalid path
     if (pathname == NULL || strlen(pathname) == 0 || strlen(pathname) > MAX_FILE_NAME_LENGTH || pathname[0] != '/') {
         return NULL;
     }
-    char *tmp = (char *) malloc(sizeof(char) * MAX_FILE_NAME_LENGTH);
+    char *tmp = (char *) malloc(sizeof(char) * strlen(pathname) + 1);
     //we use two pointer to copy pathname to tmp
     //we will jump all the '/' in pathname ,if we meet '.'
     int p = 0;
@@ -156,24 +189,46 @@ char *clean_path(char *pathname) {
 }
 
 //create directory
-int rmkdir(const char *pathname) {
-    //find file first
-    File *file = find_file(pathname);
-    if (file != NULL) {
-        //file or directory already exists
+int rmkdir(const char *path) {
+    char *pathname = clean_path(path);
+    if (pathname == NULL) {
         return -1;
     }
-    //create file or directory
-    file=create_file(pathname, DIRECTORY);
-    if (file == NULL) {
-        //create file or directory failed
+    //create directory
+    Folder *folder = create_dir(pathname);
+    free(pathname);
+    if (folder == NULL) {
+        //create directory failed
         return -1;
     }
-    return 0;
-}
-
-int8_t delete_file(char *pathname) {
-    return 0;
+    return 1;
 }
 
 
+int rrmdir(const char *pathname) {
+    char *path = clean_path(pathname);
+    if (path == NULL) {
+        return -1;
+    }
+    return delete_dir(path);
+}
+
+int runlink(const char *pathname){
+    char *path = clean_path(pathname);
+    if (path == NULL) {
+        return -1;
+    }
+    return delete_file(path);
+}
+
+int rclose(int fd){
+    if (fd < 0 || fd >= MAX_FD_COUNT) {
+        return -1;
+    }
+    if (fd_table.fds[fd] == NULL) {
+        return -1;
+    }
+    free(fd_table.fds[fd]);
+    fd_table.fds[fd] = NULL;
+    return 1;
+}

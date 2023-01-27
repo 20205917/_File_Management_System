@@ -137,3 +137,6 @@ int myHash(char *x) {
     return hash;
 }
 
+HashMap *DefaultHashMap(){
+    return CreateHashMap(DEFAULT_HASHMAP_SIZE);
+}
