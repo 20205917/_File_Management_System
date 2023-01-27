@@ -4,7 +4,7 @@
 #include <malloc.h>
 #include <string.h>
 #include "ramfs.h"
-
+#define FILE      0
 //file system
 FdTable fd_table;
 File *root;
@@ -169,6 +169,10 @@ int rmkdir(const char *pathname) {
         //create file or directory failed
         return -1;
     }
+    return 0;
+}
+
+int8_t delete_file(char *pathname) {
     return 0;
 }
 

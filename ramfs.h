@@ -6,7 +6,7 @@
 #define _FILE_MANAGEMENT_SYSTEM_RAMFS_H
 
 #include <stdint.h>
-
+#include "hashmap.h"
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
@@ -21,16 +21,22 @@
 #define MAX_FILE_NAME_LENGTH 256
 #define MAX_FD_COUNT 65554
 
-#define FILE 0
+
 #define DIRECTORY 1
 
-typedef struct file {
+typedef struct Folder {
     char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
-    int type; //type 0:file 1:directory
-    int size; //file size
-    struct file *parent; //parent directory
-    struct file *child; //child directory or file
-    struct file *sibling; //sibling directory or file
+    int32_t size; //file size
+    struct Folder * parent;
+    HashMap * fileSet;
+    HashMap * folderSet;
+    char *content; //file content
+} Folder;
+
+typedef struct File {
+    char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
+    struct Folder * parent;
+    int32_t size; //file size
     char *content; //file content
 } File;
 
@@ -48,9 +54,11 @@ typedef struct fd_table {
 } FdTable;
 
 
-
+typedef intptr_t ssize_t;
+typedef uintptr_t size_t;
 typedef long off_t;
-typedef long int ssize_t;
+
+
 
 int ropen(const char *pathname, int flags);
 
@@ -75,6 +83,8 @@ void init_ramfs();
 File *find_file( char *pathname);
 
 File *create_file( char *pathname, int type);
+
+int8_t delete_file( char *pathname);
 
 //clear file path
 char *clean_path( char *pathname);
