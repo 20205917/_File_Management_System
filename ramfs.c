@@ -44,6 +44,9 @@ int ropen(const char *path, int flags) {
             //create failed
         else
             return -1;
+    } else{
+        free(pathname);
+        return -1;
     }
 
     //create file descriptor
@@ -213,6 +216,10 @@ int rmkdir(const char *path) {
     Folder *parent = find_folder(parent_path);  //find parent directory
     if (parent == NULL) {
         //parent directory not found
+        return -1;
+    }
+    //detect whether the directory already exists
+    if ((void *) GetHashMap(parent->folderSet, name) != NULL) {
         return -1;
     }
     //create directory
