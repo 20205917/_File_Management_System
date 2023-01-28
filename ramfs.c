@@ -268,7 +268,7 @@ int rclose(int fd) {
 //隙，我们规定应当以 "\0" 填充这段空间。
 off_t rseek(int fd, off_t offset, int whence) {
     //judge fd is valid
-    if (fd < 0 || fd >= MAX_FD_COUNT||fd_table.fds[fd] == NULL) {
+    if (fd < 0 || fd >= MAX_FD_COUNT || fd_table.fds[fd] == NULL) {
         return -1;
     }
     switch (whence) {
@@ -290,7 +290,20 @@ off_t rseek(int fd, off_t offset, int whence) {
 }
 
 ssize_t rwrite(int fd, const void *buf, size_t count) {
+    //judge fd is valid
+    if (fd < 0 || fd >= MAX_FD_COUNT || fd_table.fds[fd] == NULL) {
+        return -1;
+    }
+    //judge buf is valid
+    if (buf == NULL || count <= 0) {
+        return -1;
+    }
     Fd *pfd = fd_table.fds[fd];
+    //judge pfd is able to write
+    if (!((pfd->flags & O_WRONLY) | (pfd->flags & O_RDWR))) {
+        return -1;
+    }
+
     //空间不够申请空间
     if (pfd->file->size < pfd->offset + count) {
         char *tmp = (char *) malloc(sizeof(char) * (pfd->offset + count));
@@ -302,12 +315,27 @@ ssize_t rwrite(int fd, const void *buf, size_t count) {
     int i = 0;
     while (i < count)
         pfd->file->content[pfd->offset++] = ((char *) buf)[i++];
+
+    pfd->file->size = (int) pfd->offset;
+
     return i;
 }
 
 ssize_t rread(int fd, void *buf, size_t count) {
+    //judge fd is valid
+    if (fd < 0 || fd >= MAX_FD_COUNT || fd_table.fds[fd] == NULL) {
+        return -1;
+    }
+    //judge buf is valid
+    if (buf == NULL || count <= 0) {
+        return -1;
+    }
     Fd *pfd = fd_table.fds[fd];
-    int i = 0;
+    //judge pfd is able to write
+    if (!((pfd->flags & O_RDONLY) | (pfd->flags & O_RDWR))) {
+        return -1;
+    }
+    int i;
     for (i = 0; i < count && pfd->offset < pfd->file->size; ++i)
         ((char *) buf)[i] = pfd->file->content[pfd->offset++];
     return i;
