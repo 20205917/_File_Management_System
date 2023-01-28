@@ -178,21 +178,30 @@ int rmkdir(const char *path) {
     char *pathname = clean_path(path);
     if (pathname == NULL)
         return -1;
-
+    char *parent_path = (char *) malloc(strlen(pathname) + 1);
+    strcpy(parent_path, pathname);
+    char *name = strrchr(parent_path, '/');
+    *name = '\0';
+    name++;
+    Folder *parent = find_folder(parent_path);  //find parent directory
+    if (parent == NULL) {
+        //parent directory not found
+        return -1;
+    }
     //create directory
     Folder *folder = (Folder *) malloc(sizeof(Folder));
     if (folder == NULL)
         return -1;
-    folder->parent = NULL;
+    folder->parent = parent;
     folder->size = 0;
     folder->fileSet = DefaultHashMap();
     folder->folderSet = DefaultHashMap();
     strcpy(folder->name, pathname);
+    InsertHashMap(parent->folderSet, name, (intptr_t) folder);
 
     free(pathname);
-
-    //create directory failed
-
+    free(parent_path);
+    //create directory success
     return 1;
 }
 
