@@ -145,6 +145,19 @@ int delete_file(char *pathname) {
         //parent directory not found
         return -1;
     }
+    //get file
+    File *file = (File *) GetHashMap(parent->fileSet, name);
+    if (file == NULL) {
+        //file not found
+        return -1;
+    }
+    //clear all fd point to this file
+    for (int i = 0; i < MAX_FD_COUNT; i++) {
+        if (fd_table.fds[i] != NULL && fd_table.fds[i]->file == file) {
+            free(fd_table.fds[i]);
+            fd_table.fds[i] = NULL;
+        }
+    }
     return RemoveHashMap(parent->fileSet, name);
 }
 
@@ -254,6 +267,10 @@ int rclose(int fd) {
 //了数据。在 超过文件末尾的地方写入了数据后，原来的文件末尾到实际写入位置之间可能出现一个空
 //隙，我们规定应当以 "\0" 填充这段空间。
 off_t rseek(int fd, off_t offset, int whence) {
+    //judge fd is valid
+    if (fd < 0 || fd >= MAX_FD_COUNT||fd_table.fds[fd] == NULL) {
+        return -1;
+    }
     switch (whence) {
         case SEEK_SET:
             fd_table.fds[fd]->offset = offset;
