@@ -26,7 +26,7 @@
 
 typedef struct Folder {
     char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
-    int32_t size; //file size
+    int size; //file size
     struct Folder *parent;
     HashMap *fileSet;
     HashMap *folderSet;
@@ -35,7 +35,7 @@ typedef struct Folder {
 typedef struct File {
     char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
     struct Folder *parent;
-    int32_t size; //file size
+    int size; //file size
     char *content; //file content
 } File;
 
@@ -75,20 +75,19 @@ int runlink(const char *pathname);
 
 void init_ramfs();
 
-
-
-
 //util functions
 File *find_file(char *pathname);
+
 File *create_file(char *pathname);
+
 int delete_file(char *pathname);
 
 Folder *find_folder(char *pathname);
-Folder *create_dir(char *pathname);
+
 int delete_dir(char *pathname);
 
 //clear file path
-char *clean_path(char *pathname);
+char *clean_path(const char *pathname);
 
 
 #endif //_FILE_MANAGEMENT_SYSTEM_RAMFS_H

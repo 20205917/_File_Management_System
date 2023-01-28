@@ -3,11 +3,8 @@
 #include "malloc.h"
 #include "stdio.h"
 int main() {
-    File *c = (File*)malloc(sizeof (File));
-    c = NULL;
-    intptr_t *a = (intptr_t*) NULL;
-    File *b = (File*)a;
-    printf("%d",(int)c);
+    char * c = clean_path("//dir///////1.txt");
+
 //  init_ramfs();
 //  assert(rmkdir("/dir") == 0);
 //  assert(rmkdir("//dir") == -1);
