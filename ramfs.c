@@ -44,6 +44,9 @@ int ropen(const char *path, int flags) {
             //create failed
         else
             return -1;
+    } else{
+        free(pathname);
+        return -1;
     }
 
     //create file descriptor
@@ -215,6 +218,10 @@ int rmkdir(const char *path) {
         //parent directory not found
         return -1;
     }
+    //detect whether the directory already exists
+    if ((void *) GetHashMap(parent->folderSet, name) != NULL) {
+        return -1;
+    }
     //create directory
     Folder *folder = (Folder *) malloc(sizeof(Folder));
     if (folder == NULL)
@@ -229,7 +236,7 @@ int rmkdir(const char *path) {
     free(pathname);
     free(parent_path);
     //create directory success
-    return 1;
+    return 0;
 }
 
 int rrmdir(const char *pathname) {
@@ -257,7 +264,7 @@ int rclose(int fd) {
     }
     free(fd_table.fds[fd]);
     fd_table.fds[fd] = NULL;
-    return 1;
+    return 0;
 }
 
 //SEEK_SET 0 将文件描述符的偏移量设置到 offset 指向的位置

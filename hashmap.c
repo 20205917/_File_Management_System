@@ -45,7 +45,7 @@ int InsertHashMap(HashMap* hashMap, char* key, intptr_t value)
             if (strcmp(temp->key, node->key) == 0) {
                 // 复制新value
                 temp->value = value;
-                return 1; // 返回1表示插入成功
+                return 0; // 返回1表示插入成功
             }
             prev = temp;
             temp = temp->next;
@@ -53,7 +53,7 @@ int InsertHashMap(HashMap* hashMap, char* key, intptr_t value)
         // 最后一个节点node_end的next指向新建的node
         prev->next = node;
     }
-    return 1;
+    return 0;
 }
 
 intptr_t GetHashMap(HashMap* hashMap,char* key)
@@ -109,7 +109,7 @@ int RemoveHashMap(HashMap* hashMap, char* key)
         hashMap->hashArr[index] = temp->next;
         free(temp->key);
         free(temp);
-        return 1;
+        return 0;
     }
     else {
         HashNode *prev = temp;
@@ -120,7 +120,7 @@ int RemoveHashMap(HashMap* hashMap, char* key)
                 prev->next = temp->next;
                 free(temp->key);
                 free(temp);
-                return 1;
+                return 0;
             }
             prev = temp;
             temp = temp->next;
