@@ -231,6 +231,9 @@ int rclose(int fd){
 //了数据。在 超过文件末尾的地方写入了数据后，原来的文件末尾到实际写入位置之间可能出现一个空
 //隙，我们规定应当以 "\0" 填充这段空间。
 off_t rseek(int fd, off_t offset, int whence){
+    if (fd < 0 || fd >= MAX_FD_COUNT) {
+        return -1;
+    }
     switch (whence) {
         case SEEK_SET:fd_table.fds[fd]->offset = offset;break;
         case SEEK_CUR:fd_table.fds[fd]->offset += offset;break;
@@ -242,6 +245,9 @@ off_t rseek(int fd, off_t offset, int whence){
 }
 
 ssize_t rwrite(int fd, const void *buf, size_t count){
+    if (fd < 0 || fd >= MAX_FD_COUNT) {
+        return -1;
+    }
     Fd * pfd = fd_table.fds[fd];
     //空间不够申请空间
     if(pfd->file->size < pfd->offset+count){
@@ -258,6 +264,9 @@ ssize_t rwrite(int fd, const void *buf, size_t count){
 }
 
 ssize_t rread(int fd, void *buf, size_t count){
+    if (fd < 0 || fd >= MAX_FD_COUNT) {
+        return -1;
+    }
     Fd * pfd = fd_table.fds[fd];
     int i = 0;
     for ( i = 0; i < count && pfd->offset < pfd->file->size; ++i)
