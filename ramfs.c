@@ -229,7 +229,7 @@ int rmkdir(const char *path) {
     free(pathname);
     free(parent_path);
     //create directory success
-    return 1;
+    return 0;
 }
 
 int rrmdir(const char *pathname) {
@@ -257,7 +257,7 @@ int rclose(int fd) {
     }
     free(fd_table.fds[fd]);
     fd_table.fds[fd] = NULL;
-    return 1;
+    return 0;
 }
 
 //SEEK_SET 0 将文件描述符的偏移量设置到 offset 指向的位置
