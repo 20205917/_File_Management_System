@@ -2,5 +2,6 @@
 ./*.xml
 ./*.iml
 ./*.ipr
+/cmake-build-debug/
 ./cmake-build-debug
 cmake-build-debug

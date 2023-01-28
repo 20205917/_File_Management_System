@@ -24,7 +24,9 @@
 #define MAX_FD_COUNT 65554
 
 #define DIRECTORY 1
-
+typedef intptr_t ssize_t;
+typedef uintptr_t size_t;
+typedef long off_t;
 typedef struct Folder {
     char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
     int size; //file size
@@ -53,9 +55,7 @@ typedef struct fd_table {
 } FdTable;
 
 
-typedef intptr_t ssize_t;
-typedef uintptr_t size_t;
-typedef long off_t;
+
 
 
 int ropen(const char *pathname, int flags);

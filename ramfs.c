@@ -69,7 +69,7 @@ int ropen(const char *path, int flags) {
 
 
     //find empty file descriptor
-    for (int i = 0; i < MAX_FD_COUNT; i++) {
+    for (int i = 1; i < MAX_FD_COUNT; i++) {
         if (fd_table.fds[i] == NULL) {
             fd_table.fds[i] = fd;
             return i;
@@ -95,12 +95,12 @@ File *create_file(char *pathname) {
     File *file = (File *) malloc(sizeof(File));
     file->size = 0;
     file->parent = parent;
+    file->content = NULL;
     strcpy(file->name, name);
     //add file to parent directory
-    if (InsertHashMap(parent->fileSet, name, (intptr_t) file)) {
+    if (InsertHashMap(parent->fileSet, name, (intptr_t) file)==0)
         //add file or directory to parent directory failed
         return file;
-    }
     return NULL;
 }
 
@@ -214,8 +214,8 @@ int rmkdir(const char *path) {
     *name = '\0';
     name++;
     Folder *parent = find_folder(parent_path);  //find parent directory
-    if (parent == NULL) {
-        //parent directory not found
+    if (parent == NULL || GetHashMap(parent->folderSet,name)!=NULL) {
+        //parent directory not found or new directory already exist
         return -1;
     }
     //detect whether the directory already exists
@@ -315,15 +315,19 @@ ssize_t rwrite(int fd, const void *buf, size_t count) {
     if (pfd->file->size < pfd->offset + count) {
         char *tmp = (char *) malloc(sizeof(char) * (pfd->offset + count));
         memset(tmp, 0, (pfd->offset + count));
-        strcpy(tmp, pfd->file->content);
-        free(pfd->file->content);
+        //¸´ÖÆÔ­ÄÚÈÝ
+        for (int i=0 ; i<pfd->file->size ; i++)
+            tmp[i] = pfd->file->content[i];
+        if(pfd->file->content!=NULL)
+            free(pfd->file->content);
         pfd->file->content = tmp;
     }
     int i = 0;
     while (i < count)
         pfd->file->content[pfd->offset++] = ((char *) buf)[i++];
 
-    pfd->file->size = (int) pfd->offset;
+    if(pfd->file->size < pfd->offset)
+        pfd->file->size = pfd->offset;
 
     return i;
 }

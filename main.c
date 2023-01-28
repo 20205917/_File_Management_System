@@ -1,6 +1,8 @@
-#include "ramfs.h"
 #include <assert.h>
 #include <string.h>
+#include "ramfs.h"
+#include "stdio.h"
+
 int main() {
     init_ramfs();
 // 你的初始化操作
