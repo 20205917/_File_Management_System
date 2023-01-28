@@ -41,7 +41,7 @@ typedef struct File {
 
 //file descriptor
 typedef struct fd {
-    int offset; //file descriptor
+    off_t offset; //file descriptor
     int flags; //file descriptor flags
     File *file; //file
 } Fd;

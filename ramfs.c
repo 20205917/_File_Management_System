@@ -12,7 +12,7 @@ Folder *root;
 //init file system
 void init_ramfs() {
     //init file descriptor table
-    memset(fd_table.fds,0,MAX_FD_COUNT*sizeof (Fd*));
+    memset(fd_table.fds, 0, MAX_FD_COUNT * sizeof(Fd *));
     for (int i = 0; i < MAX_FD_COUNT; i++) {
         fd_table.fds[i] = NULL;
     }
@@ -41,7 +41,7 @@ int ropen(const char *path, int flags) {
         //create file
         if (flags & O_CREAT)
             file = create_file(pathname);
-        //create failed
+            //create failed
         else
             return -1;
     }
@@ -52,6 +52,19 @@ int ropen(const char *path, int flags) {
     fd->file = file;
     fd->flags = flags;
 
+    //deal with flags
+    if (flags & O_APPEND) {
+        fd->offset = file->size;
+    }
+    if (flags & O_TRUNC) {
+        file->size = 0;
+        if (file->content != NULL) {
+            free(file->content);
+            file->content = NULL;
+        }
+    }
+
+
     //find empty file descriptor
     for (int i = 0; i < MAX_FD_COUNT; i++) {
         if (fd_table.fds[i] == NULL) {
@@ -59,7 +72,7 @@ int ropen(const char *path, int flags) {
             return i;
         }
     }
-    return  -1;//no empty file descriptor
+    return -1;//no empty file descriptor
 }
 
 //create file
@@ -154,17 +167,18 @@ char *clean_path(const char *pathname) {
     if (pathname == NULL || strlen(pathname) == 0 || strlen(pathname) > MAX_FILE_NAME_LENGTH || pathname[0] != '/') {
         return NULL;
     }
-    if(strrchr(pathname,'.')!=NULL && strrchr(pathname,'/')!=NULL && strrchr(pathname,'.') - strrchr(pathname,'/')<0)
+    if (strrchr(pathname, '.') != NULL && strrchr(pathname, '/') != NULL &&
+        strrchr(pathname, '.') - strrchr(pathname, '/') < 0)
         return NULL;
     char *tmp;
     int p = 0;
     tmp = (char *) malloc(sizeof(char) * strlen(pathname) + 1);
-    memset(tmp,0, strlen(pathname)+1);
+    memset(tmp, 0, strlen(pathname) + 1);
     char *pathname1 = strdup(pathname);
     char *tok = strtok(pathname1, "/");
-    while (tok!=NULL){
+    while (tok != NULL) {
         tmp[p++] = '/';
-        for (int i = 0;i < strlen(tok);i++)
+        for (int i = 0; i < strlen(tok); i++)
             tmp[p++] = tok[i];
         tok = strtok(NULL, "/");
     }
@@ -213,7 +227,7 @@ int rrmdir(const char *pathname) {
     return delete_dir(path);
 }
 
-int runlink(const char *pathname){
+int runlink(const char *pathname) {
     char *path = clean_path(pathname);
     if (path == NULL) {
         return -1;
@@ -221,7 +235,7 @@ int runlink(const char *pathname){
     return delete_file(path);
 }
 
-int rclose(int fd){
+int rclose(int fd) {
     if (fd < 0 || fd >= MAX_FD_COUNT) {
         return -1;
     }
@@ -239,37 +253,45 @@ int rclose(int fd){
 //rseek 允许将偏移量设置到文件末尾之后的位置，但是并不会改变文件的大小，直到它在这个位置写入
 //了数据。在 超过文件末尾的地方写入了数据后，原来的文件末尾到实际写入位置之间可能出现一个空
 //隙，我们规定应当以 "\0" 填充这段空间。
-off_t rseek(int fd, off_t offset, int whence){
+off_t rseek(int fd, off_t offset, int whence) {
     switch (whence) {
-        case SEEK_SET:fd_table.fds[fd]->offset = offset;break;
-        case SEEK_CUR:fd_table.fds[fd]->offset += offset;break;
-        case SEEK_END:fd_table.fds[fd]->offset = fd_table.fds[fd]->file->size+offset;break;
+        case SEEK_SET:
+            fd_table.fds[fd]->offset = offset;
+            break;
+        case SEEK_CUR:
+            fd_table.fds[fd]->offset += offset;
+            break;
+        case SEEK_END:
+            fd_table.fds[fd]->offset = fd_table.fds[fd]->file->size + offset;
+            break;
+        default:
+            return -1;//invalid whence
     }
-    if (fd_table.fds[fd]->offset<=0)
+    if (fd_table.fds[fd]->offset <= 0)
         fd_table.fds[fd]->offset = 0;
     return fd_table.fds[fd]->offset;
 }
 
-ssize_t rwrite(int fd, const void *buf, size_t count){
-    Fd * pfd = fd_table.fds[fd];
+ssize_t rwrite(int fd, const void *buf, size_t count) {
+    Fd *pfd = fd_table.fds[fd];
     //空间不够申请空间
-    if(pfd->file->size < pfd->offset+count){
-        char * tmp = (char *) malloc(sizeof (char )* (pfd->offset+count));
-        memset(tmp,0,(pfd->offset+count));
-        strcpy(tmp,pfd->file->content);
+    if (pfd->file->size < pfd->offset + count) {
+        char *tmp = (char *) malloc(sizeof(char) * (pfd->offset + count));
+        memset(tmp, 0, (pfd->offset + count));
+        strcpy(tmp, pfd->file->content);
         free(pfd->file->content);
         pfd->file->content = tmp;
     }
-    int i=0;
-    while ( i < count)
-        pfd->file->content[pfd->offset++] = ((char *)buf)[i++];
+    int i = 0;
+    while (i < count)
+        pfd->file->content[pfd->offset++] = ((char *) buf)[i++];
     return i;
 }
 
-ssize_t rread(int fd, void *buf, size_t count){
-    Fd * pfd = fd_table.fds[fd];
+ssize_t rread(int fd, void *buf, size_t count) {
+    Fd *pfd = fd_table.fds[fd];
     int i = 0;
-    for ( i = 0; i < count && pfd->offset < pfd->file->size; ++i)
-        ((char *)buf)[i] = pfd->file->content[pfd->offset++];
+    for (i = 0; i < count && pfd->offset < pfd->file->size; ++i)
+        ((char *) buf)[i] = pfd->file->content[pfd->offset++];
     return i;
 }
