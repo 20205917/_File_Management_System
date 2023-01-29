@@ -15,8 +15,7 @@ typedef struct Folder {
     char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
     int size; //file size
     struct Folder *parent;
-    HashMap *fileSet;
-    HashMap *folderSet;
+    HashMap *FSet;
 } Folder;
 
 typedef struct File {
@@ -46,7 +45,6 @@ int delete_file(char *pathname);
 
 Folder *find_folder(char *pathname);
 
-int delete_dir(char *pathname);
 
 //clear file path
 char *clean_path(const char *pathname);

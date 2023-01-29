@@ -20,31 +20,31 @@ void init_ramfs() {
     root = (Folder *) malloc(sizeof(Folder));
     root->parent = NULL;
     root->size = 0;
-    root->fileSet = DefaultHashMap();
-    root->folderSet = DefaultHashMap();
+    root->FSet= DefaultHashMap();
     strcpy(root->name, "/");
 }
 
 
 //open file
 int ropen(const char *path, int flags) {
+    //find empty file descriptor
+    int i = 0;
+    while (fd_table.fds[i++] != NULL && i < MAX_FD_COUNT);
+    if(i >= MAX_FD_COUNT)
+        return -1;
+
     //invalid path
     char *pathname = clean_path(path);
-    if (pathname == NULL) {
+    if (pathname == NULL)
         return -1;
-    }
     //find file
     File *file = find_file(pathname);
 
     //file  not found
-    if (file == NULL) {
+    if (file == NULL && (flags & O_CREAT))
         //create file
-        if (flags & O_CREAT)
-            file = create_file(pathname);
-            //create failed
-        else
-            return -1;
-    } else{
+        file = create_file(pathname);
+    else{
         free(pathname);
         return -1;
     }
@@ -56,9 +56,9 @@ int ropen(const char *path, int flags) {
     fd->flags = flags;
 
     //deal with flags
-    if (flags & O_APPEND) {
+    if (flags & O_APPEND)
         fd->offset = file->size;
-    }
+
     if (flags & O_TRUNC) {
         file->size = 0;
         if (file->content != NULL) {
@@ -67,15 +67,9 @@ int ropen(const char *path, int flags) {
         }
     }
 
-
-    //find empty file descriptor
-    for (int i = 1; i < MAX_FD_COUNT; i++) {
-        if (fd_table.fds[i] == NULL) {
-            fd_table.fds[i] = fd;
-            return i;
-        }
-    }
-    return -1;//no empty file descriptor
+    fd_table.fds[i] = fd;
+    free(pathname);
+    return i;//no empty file descriptor
 }
 
 //create file
@@ -94,13 +88,13 @@ File *create_file(char *pathname) {
     //create file
     File *file = (File *) malloc(sizeof(File));
     file->size = 0;
-    file->parent = parent;
     file->content = NULL;
     strcpy(file->name, name);
     //add file to parent directory
-    if (InsertHashMap(parent->fileSet, name, (intptr_t) file)==0)
+    if (InsertHashMap(parent->FSet, name,0,(intptr_t) file)==0)
         //add file or directory to parent directory failed
         return file;
+    free(parent_path);
     return NULL;
 }
 
@@ -111,7 +105,7 @@ Folder *find_folder(char *pathname) {
     char *path = strtok(pathname, "/");
     //get file name
     while (path != NULL) {
-        cur = (Folder *) GetHashMap(cur->folderSet, path);
+        cur = (Folder *) GetHashMap(cur->FSet, 1,path);
         if (cur == NULL) {
             //path not found
             return NULL;
@@ -133,7 +127,7 @@ File *find_file(char *pathname) {
         //parent directory not found
         return NULL;
     }
-    return (File *) GetHashMap(parent->fileSet, name);
+    return (File *) GetHashMap(parent->FSet,0, name);
 }
 
 int delete_file(char *pathname) {
@@ -149,7 +143,7 @@ int delete_file(char *pathname) {
         return -1;
     }
     //get file
-    File *file = (File *) GetHashMap(parent->fileSet, name);
+    File *file = (File *) GetHashMap(parent->FSet, 0,name);
     if (file == NULL) {
         //file not found
         return -1;
@@ -161,24 +155,15 @@ int delete_file(char *pathname) {
             fd_table.fds[i] = NULL;
         }
     }
-    return RemoveHashMap(parent->fileSet, name);
+    free(file->content);
+    file->content = NULL;
+    if (RemoveHashMap(parent->FSet, name) == -1 )
+        return -1;
+    free(file);
+    return  0;
 }
 
-int delete_dir(char *pathname) {
-    if (strcmp(pathname, "/") == 0) {
-        //can not delete root directory
-        return -1;
-    }
-    Folder *folder = find_folder(pathname);
-    if (folder == NULL) {
-        //parent directory not found
-        return -1;
-    }
-    DeleteHashMap(folder->fileSet);
-    DeleteHashMap(folder->folderSet);
 
-    return RemoveHashMap(folder->parent->folderSet, folder->name);
-}
 
 //clear file path
 char *clean_path(const char *pathname) {
@@ -217,12 +202,12 @@ int rmkdir(const char *path) {
     *name = '\0';
     name++;
     Folder *parent = find_folder(parent_path);  //find parent directory
-    if (parent == NULL || GetHashMap(parent->folderSet,name)!=(intptr_t)NULL) {
+    if (parent == NULL || GetHashMap(parent->FSet,1,name)!=(intptr_t)NULL) {
         //parent directory not found or new directory already exist
         return -1;
     }
     //detect whether the directory already exists
-    if ((void *) GetHashMap(parent->folderSet, name) != NULL) {
+    if ((void *) GetHashMap(parent->FSet, 1,name) != NULL) {
         return -1;
     }
     //create directory
@@ -231,10 +216,9 @@ int rmkdir(const char *path) {
         return -1;
     folder->parent = parent;
     folder->size = 0;
-    folder->fileSet = DefaultHashMap();
-    folder->folderSet = DefaultHashMap();
+    folder->FSet = DefaultHashMap();
     strcpy(folder->name, pathname);
-    InsertHashMap(parent->folderSet, name, (intptr_t) folder);
+    InsertHashMap(parent->FSet, name, 1,(intptr_t) folder);
 
     free(pathname);
     free(parent_path);
@@ -244,10 +228,22 @@ int rmkdir(const char *path) {
 
 int rrmdir(const char *pathname) {
     char *path = clean_path(pathname);
-    if (path == NULL) {
+    if (path == NULL || strcmp(path, "/") == 0) {
         return -1;
     }
-    return delete_dir(path);
+
+    Folder *folder = find_folder(path);
+    if (folder == NULL || folder->size > 0) {
+        //parent directory not found
+        return -1;
+    }
+
+    if (RemoveHashMap(folder->parent->FSet, folder->name)==-1)
+        return -1;
+    DeleteHashMap(folder->FSet);
+    folder->FSet = NULL;
+    free(folder);
+    return 0;
 }
 
 int runlink(const char *pathname) {

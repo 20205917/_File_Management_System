@@ -8,13 +8,12 @@
 
 #define DEFAULT_HASHMAP_SIZE 31
 
+
 typedef struct HashNode {
     char *key;
-
+    int type;               //0文件，1目录
     intptr_t value;
-
     struct HashNode *next; // 当key相同时，指向集合中的下一个节点
-
 } HashNode;
 
 
@@ -31,13 +30,13 @@ HashMap *CreateHashMap(int n);
 
 HashMap *DefaultHashMap();
 
-int InsertHashMap(HashMap *hashMap, char *key, intptr_t value);
+int InsertHashMap(HashMap *hashMap, char *key,int t, intptr_t value);
 
-intptr_t GetHashMap(HashMap *hashMap, char *key);
+intptr_t GetHashMap(HashMap *hashMap,int t, char *key);
 
 void DeleteHashMap(HashMap *hashMap);
 
-int RemoveHashMap(HashMap *hashMap, char *key);
+int RemoveHashMap(HashMap *hashMap , char *key);
 
 
 
