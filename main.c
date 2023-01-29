@@ -2,7 +2,7 @@
 #include <string.h>
 #include "ramfs.h"
 #include "stdio.h"
-
+图形
 int main() {
     init_ramfs();
 // 你的初始化操作
@@ -15,13 +15,14 @@ int main() {
     assert(rwrite(fd, "hello", 5) == 5);// 应当完整地写入
     assert(rseek(fd, 0, SEEK_CUR) == 5);// 当前 fd 的偏移量应该为 5
     assert(rseek(fd, 0, SEEK_SET) == 0);// 应当成功将 fd 的偏移量复位到文件开头
-    char buf[7];
+    char buf[8];
     assert(rread(fd, buf, 7) == 5);
 // 只能读到 5 字节，因为文件只有 5 字节
     assert(memcmp(buf, "hello", 5) == 0);// rread 应当确实读到 "hello" 5 个字节
     assert(rseek(fd, 3, SEEK_END) == 8);// 文件大小为 5，向后 3 字节则是在第 8 字节
     assert(rwrite(fd, "world", 5) == 5);// 再写 5 字节
     assert(rseek(fd, 5, SEEK_SET) == 5);// 将偏移量重设到 5 字节
+
     assert(rread(fd, buf, 8) == 8);
 // 在第 8 字节后写入了 5 字节，文件大小 13 字节；那么从第 5 字节后应当能成功读到 8 字节
     assert(memcmp(buf, "\0\0\0world", 8) == 0); // 3 字节的空隙应当默认填 0

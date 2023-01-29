@@ -39,9 +39,7 @@ void DeleteHashMap(HashMap *hashMap);
 
 int RemoveHashMap(HashMap *hashMap, char *key);
 
-void PrintHashMap(HashMap *hashMap);
 
-void hashMapTest(void);
 
 
 #endif //_FILE_MANAGEMENT_SYSTEM_HASHMAP_H

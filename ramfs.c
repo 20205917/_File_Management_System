@@ -174,6 +174,9 @@ int delete_dir(char *pathname) {
         //parent directory not found
         return -1;
     }
+    DeleteHashMap(folder->fileSet);
+    DeleteHashMap(folder->folderSet);
+
     return RemoveHashMap(folder->parent->folderSet, folder->name);
 }
 
@@ -214,7 +217,7 @@ int rmkdir(const char *path) {
     *name = '\0';
     name++;
     Folder *parent = find_folder(parent_path);  //find parent directory
-    if (parent == NULL || GetHashMap(parent->folderSet,name)!=NULL) {
+    if (parent == NULL || GetHashMap(parent->folderSet,name)!=(intptr_t)NULL) {
         //parent directory not found or new directory already exist
         return -1;
     }
