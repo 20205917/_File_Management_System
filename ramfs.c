@@ -35,7 +35,7 @@ typedef struct fd_table {
 
 
 //util function
-File *find_file(char *pathname, int type);
+File *find_file(const char *pathname, int type);
 
 File *create_file(const char *pathname, int type);
 
@@ -135,6 +135,7 @@ File *create_file(const char *pathname, int type) {
     file->parent = parent;
     file->child = NULL;
     file->sibling = NULL;
+    file->content = NULL;
     file->name= (char *) malloc(strlen(name) + 1);
     strcpy(file->name, name);
     //add file or directory to parent directory
@@ -151,7 +152,7 @@ File *create_file(const char *pathname, int type) {
 }
 
 //find file
-File *find_file(char *pathname, int type) {
+File *find_file(const char *pathname, int type) {
     char *tmp = (char *) malloc(strlen(pathname) + 1);
     strcpy(tmp, pathname);
     File *cur = root;//current file
@@ -220,7 +221,7 @@ int rmkdir(const char *pathname) {
 }
 
 //delete directory
-int rmdir(const char *pathname) {
+int rrmdir(const char *pathname) {
     if (justify_path(pathname, DIRECTORY) == -1) {
         return -1;
     }
@@ -380,9 +381,13 @@ ssize_t rwrite(int fd, const void *buf, size_t count){
         if (file->content == NULL) {
             file->content = malloc(fd1->offset + count);
         } else {
-            file->content = realloc(file->content, fd1->offset + count);
+            char* tmp= malloc( fd1->offset + count);
+            memset(tmp,0,fd1->offset + count);
+            memcpy(tmp,file->content,file->size);
+            free(file->content);
+            file->content=tmp;
         }
-        file->size = fd1->offset + count;
+        file->size = (int)fd1->offset + (int)count;//new size
     }
     memcpy(file->content + fd1->offset, buf, count);
     fd1->offset += (long)count;

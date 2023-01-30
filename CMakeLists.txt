@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.20.1)
 project(_File_Management_System C)
 
 set(CMAKE_C_STANDARD 99)
