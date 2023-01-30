@@ -63,6 +63,7 @@ void init_ramfs() {
     root->child = NULL;
     root->link_count=0;
     root->sibling = NULL;
+    root->content = NULL;
 }
 
 
@@ -106,6 +107,7 @@ int ropen(const char *pathname, int flags) {
 
     fd1->flags = flags;
     fd1->file = file;
+    fd1->offset = 0;
     //add file descriptor to file descriptor table
     fd_table.fds[fd] = fd1;
     file->link_count++;//link count +1
@@ -174,6 +176,9 @@ File *create_file(const char *pathname, int type) {
 
 //find file
 File *find_file(const char *pathname) {
+    if (strcmp(pathname, "/")==0|| strcmp(pathname,"") == 0) {
+        return root;
+    }
     char *tmp = (char *) malloc(strlen(pathname) + 1);
     strcpy(tmp, pathname);
     File *cur = root;//current file
@@ -201,6 +206,12 @@ File *find_file(const char *pathname) {
     while (path != NULL) {
         path = strtok(NULL, "/");
     }
+    //get the end name of the path and compare with the current file name
+    char *name = strrchr(pathname, '/');
+    name++;
+    if (cur != NULL && strcmp(cur->name, name) != 0) {
+        cur = NULL;
+    }
     free(tmp);
     return cur;
 }
@@ -226,6 +237,7 @@ int justify_path(const char *pathname) {
     }
 //    单个文件和目录名长度 <= 32 字节
     char *tmp = (char *) malloc(strlen(pathname) + 1);
+    memset(tmp, 0, strlen(pathname) + 1);
     strcpy(tmp, pathname);
     char *path = strtok(tmp, "/");
     while (path != NULL) {
@@ -240,8 +252,9 @@ int justify_path(const char *pathname) {
 
 //create directory
 int rmkdir(const char *pathname) {
+    int length = strlen(pathname);
     //find . in pathname
-    for (int i = 0; i < strlen(pathname); ++i) {
+    for (int i = 0; i < length; ++i) {
         if (pathname[i] == '.') {
             return -1;
         }
