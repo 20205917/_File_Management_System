@@ -151,6 +151,7 @@ File *create_file(const char *pathname, int type) {
     file->child = NULL;
     file->sibling = NULL;
     file->content = NULL;
+    file->link_count=0;
     file->name = (char *) malloc(strlen(name) + 1);
     strcpy(file->name, name);
     //add file or directory to parent directory
