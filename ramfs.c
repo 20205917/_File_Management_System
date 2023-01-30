@@ -415,9 +415,6 @@ ssize_t rwrite(int fd, const void *buf, size_t count) {
     if (file == NULL || file->type == DIRECTORY || buf == NULL) {
         return -1;
     }
-    if (sizeof(buf) < count) {
-        count = sizeof(buf);
-    }
     if (fd1->offset + count > file->size) {
         if (file->content == NULL) {
             file->content = malloc(fd1->offset + count);
