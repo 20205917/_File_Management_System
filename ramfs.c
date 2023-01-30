@@ -136,7 +136,7 @@ File *create_file(const char *pathname, int type) {
     file->child = NULL;
     file->sibling = NULL;
     file->content = NULL;
-    file->name= (char *) malloc(strlen(name) + 1);
+    file->name = (char *) malloc(strlen(name) + 1);
     strcpy(file->name, name);
     //add file or directory to parent directory
     if (parent->child == NULL) {
@@ -160,7 +160,7 @@ File *find_file(const char *pathname, int type) {
     while (path != NULL) {
         if (cur->child == NULL) {
             //child not found
-            cur=NULL;
+            cur = NULL;
             break;
         }
         cur = cur->child;
@@ -197,6 +197,28 @@ int justify_path(const char *pathname, int type) {
             return -1;
         }
     }
+    //路径长度 <= 1024 字节。（变相地说，文件系统的路径深度存在上限）。
+    if (strlen(pathname) > 1024) {
+        return -1;
+    }
+    for (int i = 0; i < strlen(pathname); i++) {
+        //only contain letter   number   english point
+        if (!((pathname[i] >= 'a' && pathname[i] <= 'z') || (pathname[i] >= 'A' && pathname[i] <= 'Z') ||
+              (pathname[i] >= '0' && pathname[i] <= '9') || pathname[i] == '.'||pathname[i]=='/')) {
+            return -1;
+        }
+    }
+//    单个文件和目录名长度 <= 32 字节
+    char *tmp = (char *) malloc(strlen(pathname) + 1);
+    strcpy(tmp, pathname);
+    char *path = strtok(tmp, "/");
+    while (path != NULL) {
+        if (strlen(path) > 32) {
+            return -1;
+        }
+        path = strtok(NULL, "/");
+    }
+    free(tmp);
     return 0;
 }
 
@@ -315,12 +337,12 @@ off_t rseek(int fd, off_t offset, int whence) {
         }
         fd1->offset = offset;
     } else if (whence == SEEK_CUR) {
-        if (offset+fd1->offset < 0){ //offset+fd1->offset < 0
+        if (offset + fd1->offset < 0) { //offset+fd1->offset < 0
             return -1;
         }
         fd1->offset += offset;
     } else if (whence == SEEK_END) {
-        if (offset+fd1->file->size < 0){ //offset+fd1->file->size < 0
+        if (offset + fd1->file->size < 0) { //offset+fd1->file->size < 0
             return -1;
         }
         fd1->offset = file->size + offset;
@@ -330,66 +352,66 @@ off_t rseek(int fd, off_t offset, int whence) {
     return fd1->offset;
 }
 
-ssize_t rread(int fd, void *buf, size_t count){
+ssize_t rread(int fd, void *buf, size_t count) {
     if (fd < 0 || fd >= MAX_FD_COUNT) {
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
-    if (fd1 == NULL||(!(fd1->flags & O_RDONLY||fd1->flags & O_RDWR))) {
+    if (fd1 == NULL || (!(fd1->flags & O_RDONLY || fd1->flags & O_RDWR))) {
         return -1;
     }
     File *file = fd1->file;
-    if (file==NULL||file->type == DIRECTORY) {
+    if (file == NULL || file->type == DIRECTORY) {
         return -1;
     }
     //empty file
-    if (file->size==0||fd1->file->content==NULL){
+    if (file->size == 0 || fd1->file->content == NULL) {
         return 0;
     }
     //check the buf
-    if (buf==NULL){
+    if (buf == NULL) {
         return -1;
     }
-    if (sizeof(buf)<count){
-        count=sizeof(buf);
+    if (sizeof(buf) < count) {
+        count = sizeof(buf);
     }
     if (fd1->offset + count > file->size) {
         count = file->size - fd1->offset;
     }
     //check whether the buf size
     memcpy(buf, file->content + fd1->offset, count);
-    fd1->offset += (long)count;
-    return (long)count;
+    fd1->offset += (long) count;
+    return (long) count;
 }
 
-ssize_t rwrite(int fd, const void *buf, size_t count){
+ssize_t rwrite(int fd, const void *buf, size_t count) {
     if (fd < 0 || fd >= MAX_FD_COUNT) {
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
-    if (fd1 == NULL||(!(fd1->flags & O_WRONLY||fd1->flags & O_RDWR))) {
+    if (fd1 == NULL || (!(fd1->flags & O_WRONLY || fd1->flags & O_RDWR))) {
         return -1;
     }
     File *file = fd1->file;
-    if (file==NULL||file->type == DIRECTORY||buf==NULL) {
+    if (file == NULL || file->type == DIRECTORY || buf == NULL) {
         return -1;
     }
-    if (sizeof(buf)<count){
-        count=sizeof(buf);
+    if (sizeof(buf) < count) {
+        count = sizeof(buf);
     }
     if (fd1->offset + count > file->size) {
         if (file->content == NULL) {
             file->content = malloc(fd1->offset + count);
         } else {
-            char* tmp= malloc( fd1->offset + count);
-            memset(tmp,0,fd1->offset + count);
-            memcpy(tmp,file->content,file->size);
+            char *tmp = malloc(fd1->offset + count);
+            memset(tmp, 0, fd1->offset + count);
+            memcpy(tmp, file->content, file->size);
             free(file->content);
-            file->content=tmp;
+            file->content = tmp;
         }
-        file->size = (int)fd1->offset + (int)count;//new size
+        file->size = (int) fd1->offset + (int) count;//new size
     }
     memcpy(file->content + fd1->offset, buf, count);
-    fd1->offset += (long)count;
-    return (long)count;
+    fd1->offset += (long) count;
+    return (long) count;
 }
