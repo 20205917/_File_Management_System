@@ -133,12 +133,15 @@ int ropen(const char *pathname, int flags) {
 File *create_file(const char *pathname, int type) {
     //find parent directory
     char *parent_path = (char *) malloc(strlen(pathname) + 1);
+    memset(parent_path, 0, strlen(pathname) + 1);
     strcpy(parent_path, pathname);
 
     char *name = strrchr(parent_path, '/');
     *name = '\0';
     name++;
-    File *parent = find_file(parent_path);
+    char* tmp= clean_path(parent_path);
+    File *parent = find_file(tmp);
+    free(tmp);
     if (parent == NULL||parent->type!=DIRECTORY) {
         free(parent_path);
         //parent directory not found
