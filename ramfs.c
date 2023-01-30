@@ -68,8 +68,7 @@ void init_ramfs() {
 //open file or directory
 int ropen(const char *pathname, int flags) {
     //invalid path
-    int res = justify_path(pathname);
-    if (res == -1) {
+    if (justify_path(pathname) == -1) {
         return -1;
     }
     char end = pathname[strlen(pathname) - 1];//get end char
@@ -87,10 +86,12 @@ int ropen(const char *pathname, int flags) {
             file = create_file(path, FILE);
             if (file == NULL) {
                 //create file or directory failed
+                free(path);
                 return -1;
             }
         } else {
             //file or directory not found
+            free(path);
             return -1;
         }
     }
@@ -122,6 +123,7 @@ int ropen(const char *pathname, int flags) {
             file->content = NULL;
         }
     }
+    free(path);
     return fd;
 }
 
@@ -160,6 +162,7 @@ File *create_file(const char *pathname, int type) {
         }
         child->sibling = file;
     }
+    free(parent_path);
     return file;
 }
 
@@ -247,14 +250,17 @@ int rmkdir(const char *pathname) {
     File *file = find_file(path);
     if (file != NULL) {
         //file or directory already exists
+        free(path);
         return -1;
     }
     //create file or directory
     file = create_file(path, DIRECTORY);
     if (file == NULL) {
         //create file or directory failed
+        free(path);
         return -1;
     }
+    free(path);
     return 0;
 }
 
@@ -274,17 +280,20 @@ int rrmdir(const char *pathname) {
     File *file = find_file(path);
     if (file == NULL || file->link_count >= 1||file->type==FILE) {
         //file or directory not found
+        free(path);
         return -1;
     }
     if (file->child != NULL) {
         //directory not empty
+        free(path);
         return -1;
     }
     //delete file or directory
     File *parent = file->parent;
     if (parent->child == file) {
         parent->child = file->sibling;
-    } else {
+    }
+    else {
         File *child = parent->child;
         while (child->sibling != file) {
             child = child->sibling;
@@ -293,6 +302,7 @@ int rrmdir(const char *pathname) {
     }
     free(file->name);
     free(file);
+    free(path);
     return 0;
 }
 
@@ -306,9 +316,11 @@ int runlink(const char *pathname) {
     File *file = find_file(path);
     if (file == NULL) {
         //file or directory not found
+        free(path);
         return -1;
     }
     if (file->link_count >= 1||file->type==DIRECTORY) {
+        free(path);
         return -1;//link count >=1,can not delete
     }
     //delete file
@@ -325,6 +337,7 @@ int runlink(const char *pathname) {
     free(file->content);
     free(file->name);
     free(file);
+    free(path);
     return 0;
 }
 
