@@ -112,7 +112,8 @@ int ropen(const char *pathname, int flags) {
     if (file->type == FILE) {
         if (flags & O_APPEND) {
             fd1->offset = file->size;
-        } else {
+        }
+        else {
             fd1->offset = 0;
         }
         //check flags
