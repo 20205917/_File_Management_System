@@ -183,7 +183,7 @@ File *find_file(const char *pathname) {
             }
             cur = cur->sibling;
         }
-        if (cur == NULL) {
+        if (cur == NULL||cur->type==FILE) {
             //child not found
             break;
         }
@@ -272,7 +272,7 @@ int rrmdir(const char *pathname) {
     char *path = clean_path(pathname);
     //find file first
     File *file = find_file(path);
-    if (file == NULL || file->link_count >= 1) {
+    if (file == NULL || file->link_count >= 1||file->type==FILE) {
         //file or directory not found
         return -1;
     }
@@ -308,7 +308,7 @@ int runlink(const char *pathname) {
         //file or directory not found
         return -1;
     }
-    if (file->link_count >= 1) {
+    if (file->link_count >= 1||file->type==DIRECTORY) {
         return -1;//link count >=1,can not delete
     }
     //delete file
@@ -379,7 +379,10 @@ ssize_t rread(int fd, void *buf, size_t count) {
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
-    if (fd1 == NULL || (!(fd1->flags & O_RDONLY || fd1->flags & O_RDWR))) {
+    if (fd1 == NULL) {
+        return -1;
+    }
+    if (fd1->flags&O_WRONLY) {
         return -1;
     }
     File *file = fd1->file;
