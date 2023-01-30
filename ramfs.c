@@ -11,13 +11,14 @@
 #define DIRECTORY 1
 
 typedef struct file {
-    char* name; //file name or directory name
+    char *name; //file name or directory name
     int type; //type 0:file 1:directory
     int size; //file size
     struct file *parent; //parent directory
     struct file *child; //child directory or file
     struct file *sibling; //sibling directory or file
     char *content; //file content
+    int link_count; //link count
 } File;
 
 //file descriptor
@@ -34,12 +35,12 @@ typedef struct fd_table {
 
 
 //util function
-File *find_file( const char *pathname,int type);
+File *find_file(const char *pathname, int type);
 
-File *create_file( const char *pathname, int type);
+File *create_file(const char *pathname, int type);
 
 //justify if the pathname is valid
-int justify_path(const char *pathname,int type);
+int justify_path(const char *pathname, int type);
 
 //file system
 FdTable fd_table;
@@ -65,12 +66,12 @@ void init_ramfs() {
 //open file or directory
 int ropen(const char *path, int flags) {
     //invalid path
-    int res= justify_path(path,FILE);
+    int res = justify_path(path, FILE);
     if (res == -1) {
         return -1;
     }
     //find file or directory
-    File *file = find_file(path,FILE);
+    File *file = find_file(path, FILE);
     if (file == NULL) {
         //file or directory not found
         if (flags & O_CREAT) {
@@ -110,6 +111,7 @@ int ropen(const char *path, int flags) {
         free(file->content);
         file->content = NULL;
     }
+    file->link_count++;//link count +1
     return fd;
 }
 
@@ -148,11 +150,11 @@ File *create_file(const char *pathname, int type) {
 }
 
 //find file
-File *find_file(const char *pathname,int type) {
+File *find_file(const char *pathname, int type) {
     File *cur = root;//current file
     char *path = strtok(pathname, "/");
     while (path != NULL) {
-        if (strcmp(path,"")==0){
+        if (strcmp(path, "") == 0) {
             path = strtok(NULL, "/");
             continue;
         }
@@ -162,7 +164,7 @@ File *find_file(const char *pathname,int type) {
         }
         cur = cur->child;
         while (cur != NULL) {
-            if (strcmp(cur->name, path) == 0 && cur->type==type) {
+            if (strcmp(cur->name, path) == 0 && cur->type == type) {
                 //child found
                 break;
             }
@@ -178,14 +180,14 @@ File *find_file(const char *pathname,int type) {
 }
 
 //clear file path
-int justify_path(const char *pathname,int type ) {
-    if (pathname == NULL|| strlen(pathname)<=1) {
+int justify_path(const char *pathname, int type) {
+    if (pathname == NULL || strlen(pathname) <= 1) {
         return -1;
     }
     if (pathname[0] != '/') {
         return -1;
     }
-    if (type==FILE){
+    if (type == FILE) {
         if (pathname[strlen(pathname) - 1] == '/') {
             return -1;
         }
@@ -195,6 +197,9 @@ int justify_path(const char *pathname,int type ) {
 
 //create directory
 int rmkdir(const char *pathname) {
+    if (justify_path(pathname, DIRECTORY) == -1) {
+        return -1;
+    }
     //find file first
     File *file = find_file(pathname, DIRECTORY);
     if (file != NULL) {
@@ -202,7 +207,7 @@ int rmkdir(const char *pathname) {
         return -1;
     }
     //create file or directory
-    file=create_file(pathname, DIRECTORY);
+    file = create_file(pathname, DIRECTORY);
     if (file == NULL) {
         //create file or directory failed
         return -1;
@@ -212,6 +217,9 @@ int rmkdir(const char *pathname) {
 
 //delete directory
 int rmdir(const char *pathname) {
+    if (justify_path(pathname, DIRECTORY) == -1) {
+        return -1;
+    }
     //find file first
     File *file = find_file(pathname, DIRECTORY);
     if (file == NULL) {
@@ -238,4 +246,47 @@ int rmdir(const char *pathname) {
     return 0;
 }
 
+int runlink(const char *pathname) {
+    if (justify_path(pathname, FILE) == -1) {
+        return -1;
+    }
+    //find file first
+    File *file = find_file(pathname, FILE);
+    if (file == NULL) {
+        //file or directory not found
+        return -1;
+    }
+    if (file->link_count >= 1) {
+        return -1;//link count >=1,can not delete
+    }
+    //delete file
+    File *parent = file->parent;
+    if (parent->child == file) {
+        parent->child = file->sibling;
+    } else {
+        File *child = parent->child;
+        while (child->sibling != file) {
+            child = child->sibling;
+        }
+        child->sibling = file->sibling;
+    }
+    free(file->name);
+    free(file);
+    return 0;
+}
 
+
+int rclose(int fd) {
+    if (fd < 0 || fd >= MAX_FD_COUNT) {
+        return -1;
+    }
+    Fd *fd1 = fd_table.fds[fd];
+    if (fd1 == NULL) {
+        return -1;
+    }
+    File *file = fd1->file;
+    file->link_count--;//link count -1
+    free(fd1);
+    fd_table.fds[fd] = NULL;
+    return 0;
+}
