@@ -61,6 +61,7 @@ void init_ramfs() {
     root->size = 0;
     root->parent = NULL;
     root->child = NULL;
+    root->link_count=0;
     root->sibling = NULL;
 }
 
@@ -273,6 +274,10 @@ int rrmdir(const char *pathname) {
         if (pathname[i] == '.') {
             return -1;
         }
+    }
+    //invalid path
+    if (strcmp(pathname, "/") == 0) {
+        return -1;
     }
     if (justify_path(pathname) == -1) {
         return -1;
