@@ -3,7 +3,7 @@
 #include <string.h>
 #include <malloc.h>
 
-/*int main1() {
+int main() {
     init_ramfs();
 // 你的初始化操作
     assert(rmkdir("/dir") == 0);// 应当成功
@@ -28,7 +28,4 @@
     assert(rclose(fd) == 0); // 关闭打开的文件应当成功
     assert(rclose(fd + 1) == -1); //关闭未打开的文件应当失败
     return 0;
-}*/
-int main(){
-    free(NULL);
 }

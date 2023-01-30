@@ -23,7 +23,7 @@ typedef struct file {
 
 //file descriptor
 typedef struct fd {
-    int offset; //file descriptor
+    off_t offset; //file descriptor
     int flags; //file descriptor flags
     File *file; //file
 } Fd;
@@ -289,4 +289,38 @@ int rclose(int fd) {
     free(fd1);
     fd_table.fds[fd] = NULL;
     return 0;
+}
+
+
+off_t rseek(int fd, off_t offset, int whence) {
+    if (fd < 0 || fd >= MAX_FD_COUNT) {
+        return -1;
+    }
+    Fd *fd1 = fd_table.fds[fd];
+    if (fd1 == NULL) {
+        return -1;
+    }
+    File *file = fd1->file;
+    if (file->type == DIRECTORY) {
+        return -1;
+    }
+    if (whence == SEEK_SET) {
+        if (offset < 0) {
+            return -1;
+        }
+        fd1->offset = offset;
+    } else if (whence == SEEK_CUR) {
+        if (offset+fd1->offset < 0){ //offset+fd1->offset < 0
+            return -1;
+        }
+        fd1->offset += offset;
+    } else if (whence == SEEK_END) {
+        if (offset+fd1->file->size < 0){ //offset+fd1->file->size < 0
+            return -1;
+        }
+        fd1->offset = file->size + offset;
+    } else {
+        return -1;
+    }
+    return fd1->offset;
 }
