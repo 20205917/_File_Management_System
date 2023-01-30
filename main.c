@@ -60,17 +60,13 @@ int main() {
     test(rmkdir, 0, "/a/");
     test(rmkdir, 0, "/a/b/");
     test(rmkdir, 0, "/a/b/c");
-    test(rmkdir, -1, "//a/b");
-    test(rmkdir, -1, "/a/b/c/");
-    test(rmkdir, 0, "/a/d");
-    test(rmkdir, -1, "/a/b/c/d/e");
-    test(rmkdir, 0, "/a/b/c/d");
-    test(rmkdir, 0, "/a/b/c/d/e");
-    test(rmkdir, 0, "/a//c");
-    test(rmkdir, 0, "/a/c/b");
-    test(rmkdir, 0, "/a/c/c");
-    test(rmkdir, 0, "/a/c/d");
-    test(rmkdir, 0, "/a/c/d/e");
+    test(rmkdir, 0, "/a/b/e");
+    test(rmkdir, 0, "/a/b/f");
+    test(rmkdir, 0, "/a/b/g");
+    test(rrmdir, 0, "/a/b/g");
+    test(rrmdir, -1, "/a/b/g");
+    test(runlink, -1, "/a/b/g");
+    test(runlink, -1, "/a/b/g");
 
     /* long */
     test(rmkdir, 0, "/00000000000000000000000000000001/");
