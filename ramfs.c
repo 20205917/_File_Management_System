@@ -322,6 +322,7 @@ int runlink(const char *pathname) {
         }
         child->sibling = file->sibling;
     }
+    free(file->content);
     free(file->name);
     free(file);
     return 0;
