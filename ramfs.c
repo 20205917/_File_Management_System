@@ -139,7 +139,7 @@ File *create_file(const char *pathname, int type) {
     *name = '\0';
     name++;
     File *parent = find_file(parent_path);
-    if (parent == NULL) {
+    if (parent == NULL||parent->type!=DIRECTORY) {
         free(parent_path);
         //parent directory not found
         return NULL;
@@ -189,7 +189,7 @@ File *find_file(const char *pathname) {
             }
             cur = cur->sibling;
         }
-        if (cur == NULL||cur->type==FILE) {
+        if (cur == NULL) {
             //child not found
             break;
         }
