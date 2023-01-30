@@ -324,3 +324,35 @@ off_t rseek(int fd, off_t offset, int whence) {
     }
     return fd1->offset;
 }
+
+ssize_t rread(int fd, void *buf, size_t count){
+    if (fd < 0 || fd >= MAX_FD_COUNT) {
+        return -1;
+    }
+    Fd *fd1 = fd_table.fds[fd];
+    if (fd1 == NULL||(!(fd1->flags & O_RDONLY||fd1->flags & O_RDWR))) {
+        return -1;
+    }
+    File *file = fd1->file;
+    if (file==NULL||file->type == DIRECTORY) {
+        return -1;
+    }
+    //empty file
+    if (file->size==0||fd1->offset==file->size||fd1->file->content==NULL){
+        return 0;
+    }
+    //check the buf
+    if (buf==NULL){
+        return -1;
+    }
+    if (sizeof(buf)<count){
+        count=sizeof(buf);
+    }
+    if (fd1->offset + count > file->size) {
+        count = file->size - fd1->offset;
+    }
+    //check whether the buf size
+    memcpy(buf, file->content + fd1->offset, count);
+    fd1->offset += (long)count;
+    return (long)count;
+}
