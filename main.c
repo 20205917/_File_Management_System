@@ -2,7 +2,7 @@
 #include <string.h>
 #include "ramfs.h"
 #include "stdio.h"
-图形
+
 int main() {
     init_ramfs();
 // 你的初始化操作

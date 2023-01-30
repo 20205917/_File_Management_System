@@ -94,7 +94,6 @@ File *create_file(char *pathname) {
     //create file
     File *file = (File *) malloc(sizeof(File));
     file->size = 0;
-    file->parent = parent;
     file->content = NULL;
     strcpy(file->name, name);
     //add file to parent directory
