@@ -34,7 +34,7 @@ typedef struct fd_table {
 
 
 //util function
-File *find_file( const char *pathname);
+File *find_file( const char *pathname,int type);
 
 File *create_file( const char *pathname, int type);
 
@@ -70,7 +70,7 @@ int ropen(const char *path, int flags) {
         return -1;
     }
     //find file or directory
-    File *file = find_file(path);
+    File *file = find_file(path,FILE);
     if (file == NULL) {
         //file or directory not found
         if (flags & O_CREAT) {
@@ -121,7 +121,7 @@ File *create_file(const char *pathname, int type) {
     char *name = strrchr(parent_path, '/');
     *name = '\0';
     name++;
-    File *parent = find_file(parent_path);
+    File *parent = find_file(parent_path, DIRECTORY);
     if (parent == NULL) {
         //parent directory not found
         return NULL;
@@ -148,7 +148,7 @@ File *create_file(const char *pathname, int type) {
 }
 
 //find file
-File *find_file(const char *pathname) {
+File *find_file(const char *pathname,int type) {
     File *cur = root;//current file
     char *path = strtok(pathname, "/");
     while (path != NULL) {
@@ -162,7 +162,7 @@ File *find_file(const char *pathname) {
         }
         cur = cur->child;
         while (cur != NULL) {
-            if (strcmp(cur->name, path) == 0) {
+            if (strcmp(cur->name, path) == 0 && cur->type==type) {
                 //child found
                 break;
             }
@@ -196,7 +196,7 @@ int justify_path(const char *pathname,int type ) {
 //create directory
 int rmkdir(const char *pathname) {
     //find file first
-    File *file = find_file(pathname);
+    File *file = find_file(pathname, DIRECTORY);
     if (file != NULL) {
         //file or directory already exists
         return -1;
@@ -207,6 +207,34 @@ int rmkdir(const char *pathname) {
         //create file or directory failed
         return -1;
     }
+    return 0;
+}
+
+//delete directory
+int rmdir(const char *pathname) {
+    //find file first
+    File *file = find_file(pathname, DIRECTORY);
+    if (file == NULL) {
+        //file or directory not found
+        return -1;
+    }
+    if (file->child != NULL) {
+        //directory not empty
+        return -1;
+    }
+    //delete file or directory
+    File *parent = file->parent;
+    if (parent->child == file) {
+        parent->child = file->sibling;
+    } else {
+        File *child = parent->child;
+        while (child->sibling != file) {
+            child = child->sibling;
+        }
+        child->sibling = file->sibling;
+    }
+    free(file->name);
+    free(file);
     return 0;
 }
 
