@@ -1,3 +1,3 @@
-D:/code/c-c++/ File-Management-System/cmake-build-debug/CMakeFiles/_File_Management_System.dir
-D:/code/c-c++/ File-Management-System/cmake-build-debug/CMakeFiles/edit_cache.dir
-D:/code/c-c++/ File-Management-System/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+C:/Users/LENOVO/CLionProjects/File_Management_System/cmake-build-debug/CMakeFiles/_File_Management_System.dir
+C:/Users/LENOVO/CLionProjects/File_Management_System/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/LENOVO/CLionProjects/File_Management_System/cmake-build-debug/CMakeFiles/rebuild_cache.dir

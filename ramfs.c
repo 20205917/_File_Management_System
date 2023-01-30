@@ -202,7 +202,7 @@ File *find_file(const char *pathname) {
 
 //clear file path
 int justify_path(const char *pathname) {
-    if (pathname == NULL || strlen(pathname) <= 1) {
+    if (pathname == NULL || strlen(pathname) < 1) {
         return -1;
     }
     if (pathname[0] != '/') {

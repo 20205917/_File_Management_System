@@ -57,14 +57,17 @@ int main() {
     init_ramfs();
 
     /* short */
+    succopen(fd[1], "/", O_CREAT);
     test(rmkdir, 0, "/a/");
     test(rmkdir, 0, "/a/b/");
     test(rmkdir, 0, "/a/b/c");
     test(rmkdir, 0, "/a/b/e");
     test(rmkdir, 0, "/a/b/f");
     test(rmkdir, 0, "/a/b/g");
+
     test(rrmdir, 0, "/a/b/g");
     test(rrmdir, -1, "/a/b/g");
+
     test(runlink, -1, "/a/b/g");
     test(runlink, -1, "/a/b/g");
 
