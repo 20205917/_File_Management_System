@@ -8,8 +8,8 @@ int main() {
 // 你的初始化操作
     assert(rmkdir("/dir") == 0);// 应当成功
     assert(rrmdir("/dir") == 0);
-    assert(rrmdir("/dir") == 0);
-
+    assert(rrmdir("/dir") == -1);
+    assert(rmkdir("/dir") == 0);// 应当成功
     assert(rmkdir("//dir") == -1);// 应当给出 error，因为目录已存在
     assert(rmkdir("/a/b") == -1);// 应当给出 error，因为父目录不存在
     int fd;

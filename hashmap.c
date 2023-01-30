@@ -99,8 +99,9 @@ void DeleteHashMap(HashMap* hashMap)
 
 int RemoveHashMap(HashMap* hashMap, char* key)
 {
+
     // 对hash结果求余，获取key位置
-    int index = myHash(key) % hashMap->size;
+    int index = myHash(key) % DEFAULT_HASHMAP_SIZE;
     // 用于遍历node的临时游标
     HashNode *temp = hashMap->hashArr[index];
     if (temp == NULL)

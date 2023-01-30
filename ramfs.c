@@ -217,7 +217,7 @@ int rmkdir(const char *path) {
     folder->parent = parent;
     folder->size = 0;
     folder->FSet = DefaultHashMap();
-    strcpy(folder->name, pathname);
+    strcpy(folder->name, name);
     InsertHashMap(parent->FSet, name, 1,(intptr_t) folder);
 
     free(pathname);
