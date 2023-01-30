@@ -46,6 +46,13 @@ int justify_path(const char *pathname, int type);
 FdTable fd_table;
 File *root;
 
+int file_type(const char *pathname) {
+  //if contain . then it is a file
+    if (strchr(pathname, '.') != NULL) {
+        return FILE;
+    }
+    return DIRECTORY;
+}
 //init file system
 void init_ramfs() {
     //init file descriptor table
@@ -66,17 +73,18 @@ void init_ramfs() {
 //open file or directory
 int ropen(const char *path, int flags) {
     //invalid path
-    int res = justify_path(path, FILE);
+    int tt=file_type(path);
+    int res = justify_path(path, tt);
     if (res == -1) {
         return -1;
     }
     //find file or directory
-    File *file = find_file(path, FILE);
+    File *file = find_file(path, tt);
     if (file == NULL) {
         //file or directory not found
         if (flags & O_CREAT) {
             //create file or directory
-            file = create_file(path, FILE);
+            file = create_file(path, tt);
             if (file == NULL) {
                 //create file or directory failed
                 return -1;
@@ -192,10 +200,8 @@ int justify_path(const char *pathname, int type) {
     if (pathname[0] != '/') {
         return -1;
     }
-    if (type == FILE) {
-        if (pathname[strlen(pathname) - 1] == '/') {
-            return -1;
-        }
+    if (type == FILE&&pathname[strlen(pathname) - 1] == '/') {
+        return -1;
     }
     //路径长度 <= 1024 字节。（变相地说，文件系统的路径深度存在上限）。
     if (strlen(pathname) > 1024) {
@@ -224,6 +230,11 @@ int justify_path(const char *pathname, int type) {
 
 //create directory
 int rmkdir(const char *pathname) {
+    //invalid path
+    int tt=file_type(pathname);
+    if (tt == FILE) {
+        return -1;
+    }
     if (justify_path(pathname, DIRECTORY) == -1) {
         return -1;
     }
@@ -244,12 +255,16 @@ int rmkdir(const char *pathname) {
 
 //delete directory
 int rrmdir(const char *pathname) {
+    int tt=file_type(pathname);
+    if (tt == FILE) {
+        return -1;
+    }
     if (justify_path(pathname, DIRECTORY) == -1) {
         return -1;
     }
     //find file first
     File *file = find_file(pathname, DIRECTORY);
-    if (file == NULL) {
+    if (file == NULL||file->link_count>=1) {
         //file or directory not found
         return -1;
     }
@@ -274,6 +289,10 @@ int rrmdir(const char *pathname) {
 }
 
 int runlink(const char *pathname) {
+    int tt=file_type(pathname);
+    if (tt == DIRECTORY) {
+        return -1;
+    }
     if (justify_path(pathname, FILE) == -1) {
         return -1;
     }
@@ -361,7 +380,7 @@ ssize_t rread(int fd, void *buf, size_t count) {
         return -1;
     }
     File *file = fd1->file;
-    if (file == NULL || file->type == DIRECTORY) {
+    if (file->type == DIRECTORY) {
         return -1;
     }
     //empty file
