@@ -35,7 +35,7 @@ typedef struct fd_table {
 
 
 //util function
-File *find_file(const char *pathname, int type);
+File *find_file(char *pathname, int type);
 
 File *create_file(const char *pathname, int type);
 
@@ -55,11 +55,11 @@ void init_ramfs() {
     //create root directory
     root = (File *) malloc(sizeof(File));
     root->type = DIRECTORY;
+    root->name = "/";
     root->size = 0;
     root->parent = NULL;
     root->child = NULL;
     root->sibling = NULL;
-    strcpy(root->name, "/");
 }
 
 
@@ -135,6 +135,7 @@ File *create_file(const char *pathname, int type) {
     file->parent = parent;
     file->child = NULL;
     file->sibling = NULL;
+    file->name= (char *) malloc(strlen(name) + 1);
     strcpy(file->name, name);
     //add file or directory to parent directory
     if (parent->child == NULL) {
@@ -150,17 +151,16 @@ File *create_file(const char *pathname, int type) {
 }
 
 //find file
-File *find_file(const char *pathname, int type) {
+File *find_file(char *pathname, int type) {
+    char *tmp = (char *) malloc(strlen(pathname) + 1);
+    strcpy(tmp, pathname);
     File *cur = root;//current file
-    char *path = strtok(pathname, "/");
+    char *path = strtok(tmp, "/");
     while (path != NULL) {
-        if (strcmp(path, "") == 0) {
-            path = strtok(NULL, "/");
-            continue;
-        }
         if (cur->child == NULL) {
             //child not found
-            return NULL;
+            cur=NULL;
+            break;
         }
         cur = cur->child;
         while (cur != NULL) {
@@ -172,10 +172,14 @@ File *find_file(const char *pathname, int type) {
         }
         if (cur == NULL) {
             //child not found
-            return NULL;
+            break;
         }
         path = strtok(NULL, "/");
     }
+    while (path != NULL) {
+        path = strtok(NULL, "/");
+    }
+    free(tmp);
     return cur;
 }
 
@@ -338,7 +342,7 @@ ssize_t rread(int fd, void *buf, size_t count){
         return -1;
     }
     //empty file
-    if (file->size==0||fd1->offset==file->size||fd1->file->content==NULL){
+    if (file->size==0||fd1->file->content==NULL){
         return 0;
     }
     //check the buf
@@ -353,6 +357,34 @@ ssize_t rread(int fd, void *buf, size_t count){
     }
     //check whether the buf size
     memcpy(buf, file->content + fd1->offset, count);
+    fd1->offset += (long)count;
+    return (long)count;
+}
+
+ssize_t rwrite(int fd, const void *buf, size_t count){
+    if (fd < 0 || fd >= MAX_FD_COUNT) {
+        return -1;
+    }
+    Fd *fd1 = fd_table.fds[fd];
+    if (fd1 == NULL||(!(fd1->flags & O_WRONLY||fd1->flags & O_RDWR))) {
+        return -1;
+    }
+    File *file = fd1->file;
+    if (file==NULL||file->type == DIRECTORY||buf==NULL) {
+        return -1;
+    }
+    if (sizeof(buf)<count){
+        count=sizeof(buf);
+    }
+    if (fd1->offset + count > file->size) {
+        if (file->content == NULL) {
+            file->content = malloc(fd1->offset + count);
+        } else {
+            file->content = realloc(file->content, fd1->offset + count);
+        }
+        file->size = fd1->offset + count;
+    }
+    memcpy(file->content + fd1->offset, buf, count);
     fd1->offset += (long)count;
     return (long)count;
 }
