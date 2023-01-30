@@ -5,6 +5,46 @@
 #include <string.h>
 #include "ramfs.h"
 
+
+
+#define MAX_FILE_NAME_LENGTH 256
+#define MAX_FD_COUNT 65554
+
+#define FILE 0
+#define DIRECTORY 1
+
+typedef struct file {
+    char name[MAX_FILE_NAME_LENGTH]; //file name or directory name
+    int type; //type 0:file 1:directory
+    int size; //file size
+    struct file *parent; //parent directory
+    struct file *child; //child directory or file
+    struct file *sibling; //sibling directory or file
+    char *content; //file content
+} File;
+
+//file descriptor
+typedef struct fd {
+    int offset; //file descriptor
+    int flags; //file descriptor flags
+    File *file; //file
+} Fd;
+
+//file descriptor table
+typedef struct fd_table {
+    Fd *fds[MAX_FD_COUNT]; //file descriptor table
+    int fd_count; //file descriptor count
+} FdTable;
+
+
+//util function
+File *find_file( char *pathname);
+
+File *create_file( char *pathname, int type);
+
+//clear file path
+char *clean_path( char *pathname);
+
 //file system
 FdTable fd_table;
 File *root;
