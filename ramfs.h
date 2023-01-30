@@ -1,11 +1,9 @@
-//
-// Created by xgs on 23-1-26.
-//
 
 #ifndef _FILE_MANAGEMENT_SYSTEM_RAMFS_H
 #define _FILE_MANAGEMENT_SYSTEM_RAMFS_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #define SEEK_SET 0
 #define SEEK_CUR 1
@@ -16,8 +14,6 @@
 #define O_CREAT 0100
 #define O_TRUNC  01000
 #define O_APPEND 02000
-
-
 
 
 typedef long off_t;
