@@ -7,8 +7,10 @@
 
 #define MAX_FD_COUNT 65558
 
-#define FILE 0
-#define DIRECTORY 1
+enum {
+    FILE,
+    DIRECTORY,
+};
 
 typedef struct file {
     char *name; //file name or directory name
@@ -48,6 +50,16 @@ char *clean_path(const char *pathname);
 FdTable fd_table;
 File *root;
 
+// free file
+void free_file(File *file) {
+    if (file == NULL) {
+        return;
+    }
+    free(file->name);
+    free(file->content);
+    free(file);
+}
+
 //init file system
 void init_ramfs() {
     //init file descriptor table
@@ -56,14 +68,9 @@ void init_ramfs() {
     }
     //create root directory
     root = (File *) malloc(sizeof(File));
+    memset(root, 0, sizeof(File));
     root->type = DIRECTORY;
     root->name = "/";
-    root->size = 0;
-    root->parent = NULL;
-    root->child = NULL;
-    root->link_count=0;
-    root->sibling = NULL;
-    root->content = NULL;
 }
 
 
@@ -115,8 +122,7 @@ int ropen(const char *pathname, int flags) {
     if (file->type == FILE) {
         if (flags & O_APPEND) {
             fd1->offset = file->size;
-        }
-        else {
+        } else {
             fd1->offset = 0;
         }
         //check flags
@@ -141,25 +147,21 @@ File *create_file(const char *pathname, int type) {
     char *name = strrchr(parent_path, '/');
     *name = '\0';
     name++;
-    char* tmp= clean_path(parent_path);
+    char *tmp = clean_path(parent_path);
     File *parent = find_file(tmp);
     free(tmp);
-    if (parent == NULL||parent->type!=DIRECTORY) {
+    if (parent == NULL || parent->type != DIRECTORY) {
         free(parent_path);
         //parent directory not found
         return NULL;
     }
     //create file or directory
     File *file = (File *) malloc(sizeof(File));
+    memset(file, 0, sizeof(File));
     file->type = type;
-    file->size = 0;
     file->parent = parent;
-    file->child = NULL;
-    file->sibling = NULL;
-    file->content = NULL;
-    file->link_count=0;
     file->name = (char *) malloc(strlen(name) + 1);
-    strcpy(file->name, name);
+    memcpy(file->name, name, strlen(name) + 1);
     //add file or directory to parent directory
     if (parent->child == NULL) {
         parent->child = file;
@@ -176,7 +178,7 @@ File *create_file(const char *pathname, int type) {
 
 //find file
 File *find_file(const char *pathname) {
-    if (strcmp(pathname, "/")==0|| strcmp(pathname,"") == 0) {
+    if (strcmp(pathname, "") == 0 || strcmp(pathname, "/") == 0) {
         return root;
     }
     char *tmp = (char *) malloc(strlen(pathname) + 1);
@@ -216,48 +218,35 @@ File *find_file(const char *pathname) {
     return cur;
 }
 
-//clear file path
+//justify if the pathname is valid
 int justify_path(const char *pathname) {
-    if (pathname == NULL || strlen(pathname) < 1) {
-        return -1;
-    }
-    if (pathname[0] != '/') {
-        return -1;
-    }
     //路径长度 <= 1024 字节。（变相地说，文件系统的路径深度存在上限）。
-    if (strlen(pathname) > 1024) {
+    if (pathname[0] != '/' || strlen(pathname) > 1024)
         return -1;
-    }
-    for (int i = 0; i < strlen(pathname); i++) {
-        //only contain letter   number   english point
-        if (!((pathname[i] >= 'a' && pathname[i] <= 'z') || (pathname[i] >= 'A' && pathname[i] <= 'Z') ||
-              (pathname[i] >= '0' && pathname[i] <= '9') || pathname[i] == '.' || pathname[i] == '/')) {
+    char *path_copy = (char *) malloc(strlen(pathname) + 1);
+    memcpy(path_copy, pathname, strlen(pathname) + 1);
+    char *tok = strtok(path_copy, "/");
+    while (tok != NULL) {
+        for (int i = 0; i < strlen(tok); ++i) {
+            if (tok[i] < '0' || tok[i] > '9' && tok[i] < 'A' || tok[i] > 'Z' && tok[i] < 'a' || tok[i] > 'z') {
+                free(path_copy);
+                return -1;
+            }
+        }
+        if (strlen(tok) > 32) {
             return -1;
         }
+        tok = strtok(NULL, "/");
     }
-//    单个文件和目录名长度 <= 32 字节
-    char *tmp = (char *) malloc(strlen(pathname) + 1);
-    memset(tmp, 0, strlen(pathname) + 1);
-    strcpy(tmp, pathname);
-    char *path = strtok(tmp, "/");
-    while (path != NULL) {
-        if (strlen(path) > 32) {
-            return -1;
-        }
-        path = strtok(NULL, "/");
-    }
-    free(tmp);
+    free(path_copy);
     return 0;
 }
 
 //create directory
 int rmkdir(const char *pathname) {
     int length = strlen(pathname);
-    //find . in pathname
-    for (int i = 0; i < length; ++i) {
-        if (pathname[i] == '.') {
-            return -1;
-        }
+    if (length <= 1 || length > 1024) {
+        return -1;
     }
     //invalid path
     if (justify_path(pathname) == -1) {
@@ -286,13 +275,8 @@ int rmkdir(const char *pathname) {
 //delete directory
 int rrmdir(const char *pathname) {
     //find . in pathname
-    for (int i = 0; i < strlen(pathname); ++i) {
-        if (pathname[i] == '.') {
-            return -1;
-        }
-    }
-    //invalid path
-    if (strcmp(pathname, "/") == 0) {
+    int length = strlen(pathname);
+    if (length <= 1 || length > 1024) {
         return -1;
     }
     if (justify_path(pathname) == -1) {
@@ -301,7 +285,7 @@ int rrmdir(const char *pathname) {
     char *path = clean_path(pathname);
     //find file first
     File *file = find_file(path);
-    if (file == NULL || file->link_count >= 1||file->type==FILE) {
+    if (file == NULL || file->link_count >= 1 || file->type == FILE) {
         //file or directory not found
         free(path);
         return -1;
@@ -315,17 +299,15 @@ int rrmdir(const char *pathname) {
     File *parent = file->parent;
     if (parent->child == file) {
         parent->child = file->sibling;
-    }
-    else {
+    } else {
         File *child = parent->child;
         while (child->sibling != file) {
             child = child->sibling;
         }
         child->sibling = file->sibling;
     }
-    free(file->name);
-    free(file);
     free(path);
+    free_file(file);
     return 0;
 }
 
@@ -342,7 +324,7 @@ int runlink(const char *pathname) {
         free(path);
         return -1;
     }
-    if (file->link_count >= 1||file->type==DIRECTORY) {
+    if (file->link_count >= 1 || file->type == DIRECTORY) {
         free(path);
         return -1;//link count >=1,can not delete
     }
@@ -357,22 +339,17 @@ int runlink(const char *pathname) {
         }
         child->sibling = file->sibling;
     }
-    free(file->content);
-    free(file->name);
-    free(file);
     free(path);
+    free_file(file);
     return 0;
 }
 
 
 int rclose(int fd) {
-    if (fd < 0 || fd >= MAX_FD_COUNT) {
+    if (fd < 0 || fd >= MAX_FD_COUNT || fd_table.fds[fd] == NULL) {
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
-    if (fd1 == NULL) {
-        return -1;
-    }
     File *file = fd1->file;
     file->link_count--;//link count -1
     free(fd1);
@@ -382,94 +359,80 @@ int rclose(int fd) {
 
 
 off_t rseek(int fd, off_t offset, int whence) {
-    if (fd < 0 || fd >= MAX_FD_COUNT) {
+    if (fd < 0 || fd >= MAX_FD_COUNT || fd_table.fds[fd] == NULL) {
+        return -1;
+    }
+    if (whence != SEEK_SET && whence != SEEK_CUR && whence != SEEK_END) {
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
-    if (fd1 == NULL) {
+    File *file = fd1->file;
+    if ((offset + fd1->offset < 0 && whence == SEEK_CUR) ||
+        (offset + fd1->file->size < 0 && whence == SEEK_END) ||
+        (offset < 0 && whence == SEEK_SET)) {
         return -1;
     }
-    File *file = fd1->file;
-    if (whence == SEEK_SET) {
-        if (offset < 0) {
-            return -1;
-        }
-        fd1->offset = offset;
-    } else if (whence == SEEK_CUR) {
-        if (offset + fd1->offset < 0) { //offset+fd1->offset < 0
-            return -1;
-        }
-        fd1->offset += offset;
-    } else if (whence == SEEK_END) {
-        if (offset + fd1->file->size < 0) { //offset+fd1->file->size < 0
-            return -1;
-        }
-        fd1->offset = file->size + offset;
-    } else {
-        return -1;
+    switch (whence) {
+        case SEEK_SET:
+            fd1->offset = offset;
+            break;
+        case SEEK_CUR:
+            fd1->offset += offset;
+            break;
+        case SEEK_END:
+            fd1->offset = file->size + offset;
+            break;
     }
     return fd1->offset;
 }
 
+#define  READ  0
+#define  WRITE  1
+
+int justify_io_operation(int fd, void *buf, size_t count, int op) {
+    if (fd < 0 || fd >= MAX_FD_COUNT || fd_table.fds[fd] == NULL) {
+        return -1;
+    }
+    Fd* f_dec = fd_table.fds[fd];
+    File *f = fd_table.fds[fd]->file;
+    if (f->type == DIRECTORY || buf == NULL || count < 0) {
+        return -1;
+    }
+    if (op == READ &&f_dec->flags == O_WRONLY) {
+        return -1;
+    }
+    if (op == WRITE && f_dec->flags == O_RDONLY) {
+        return -1;
+    }
+    return 0;
+}
+
+
 ssize_t rread(int fd, void *buf, size_t count) {
-    if (fd < 0 || fd >= MAX_FD_COUNT) {
+    if(justify_io_operation(fd, buf, count, READ) == -1){
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
-    if (fd1 == NULL) {
-        return -1;
-    }
-    if (fd1->flags&O_WRONLY) {
-        return -1;
-    }
     File *file = fd1->file;
-    if (file->type == DIRECTORY) {
-        return -1;
-    }
-    //empty file
-    if (file->size == 0 || fd1->file->content == NULL) {
-        return 0;
-    }
-    //check the buf
-    if (buf == NULL) {
-        return -1;
-    }
-    if (fd1->offset + count > file->size) {
-        count = file->size - fd1->offset;
-    }
-    //check whether the buf size
+    fd1->offset + count-file->size>0?count = file->size - fd1->offset:count;
     memcpy(buf, file->content + fd1->offset, count);
-    fd1->offset += (long) count;
-    return (long) count;
+    fd1->offset +=  count;
+    return count;
 }
 
 ssize_t rwrite(int fd, const void *buf, size_t count) {
-    if (fd < 0 || fd >= MAX_FD_COUNT) {
+    if(justify_io_operation(fd, buf, count, WRITE) == -1){
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
-    if (fd1 == NULL || (!(fd1->flags & O_WRONLY || fd1->flags & O_RDWR))) {
-        return -1;
-    }
     File *file = fd1->file;
-    if (file == NULL || file->type == DIRECTORY || buf == NULL) {
-        return -1;
-    }
     if (fd1->offset + count > file->size) {
-        if (file->content == NULL) {
-            file->content = malloc(fd1->offset + count);
-        } else {
-            char *tmp = malloc(fd1->offset + count);
-            memset(tmp, 0, fd1->offset + count);
-            memcpy(tmp, file->content, file->size);
-            free(file->content);
-            file->content = tmp;
-        }
-        file->size = (int) fd1->offset + (int) count;//new size
+        file->content = realloc(file->content, fd1->offset + count);
+        file->size = fd1->offset + count;
     }
     memcpy(file->content + fd1->offset, buf, count);
-    fd1->offset += (long) count;
-    return (long) count;
+    fd1->offset += count;
+    return count;
 }
 
 
