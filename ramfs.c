@@ -1,6 +1,3 @@
-//
-// Created by xgs on 23-1-26.
-//
 #include <malloc.h>
 #include <string.h>
 #include "ramfs.h"
