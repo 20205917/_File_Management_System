@@ -3,7 +3,10 @@
 #include "ramfs.h"
 
 #define MAX_FD_COUNT 65558
-
+enum {
+    READ,
+    WRITE,
+};
 enum {
     FILE,
     DIRECTORY,
@@ -383,19 +386,17 @@ off_t rseek(int fd, off_t offset, int whence) {
     return fd1->offset;
 }
 
-#define  READ  0
-#define  WRITE  1
 
 int justify_io_operation(int fd, void *buf, size_t count, int op) {
     if (fd < 0 || fd >= MAX_FD_COUNT || fd_table.fds[fd] == NULL) {
         return -1;
     }
-    Fd* f_dec = fd_table.fds[fd];
+    Fd *f_dec = fd_table.fds[fd];
     File *f = fd_table.fds[fd]->file;
     if (f->type == DIRECTORY || buf == NULL || count < 0) {
         return -1;
     }
-    if (op == READ &&f_dec->flags == O_WRONLY) {
+    if (op == READ && f_dec->flags == O_WRONLY) {
         return -1;
     }
     if (op == WRITE && f_dec->flags == O_RDONLY) {
@@ -406,19 +407,19 @@ int justify_io_operation(int fd, void *buf, size_t count, int op) {
 
 
 ssize_t rread(int fd, void *buf, size_t count) {
-    if(justify_io_operation(fd, buf, count, READ) == -1){
+    if (justify_io_operation(fd, buf, count, READ) == -1) {
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
     File *file = fd1->file;
-    fd1->offset + count-file->size>0?count = file->size - fd1->offset:count;
+    fd1->offset + count - file->size > 0 ? count = file->size - fd1->offset : count;
     memcpy(buf, file->content + fd1->offset, count);
-    fd1->offset +=  count;
+    fd1->offset += count;
     return count;
 }
 
 ssize_t rwrite(int fd, const void *buf, size_t count) {
-    if(justify_io_operation(fd, buf, count, WRITE) == -1){
+    if (justify_io_operation(fd, buf, count, WRITE) == -1) {
         return -1;
     }
     Fd *fd1 = fd_table.fds[fd];
